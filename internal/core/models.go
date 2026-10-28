@@ -129,6 +129,12 @@ type Commit struct {
 	ChangedFiles   []string  `json:"changed_files,omitempty"`
 }
 
+// CommitDetail provides extended information for GitKraken-style commit inspection.
+type CommitDetail struct {
+	Commit
+	Diff string `json:"diff,omitempty"`
+}
+
 // Event represents an append-oriented event in the immutable event log.
 type Event struct {
 	ID                  string    `json:"id"`

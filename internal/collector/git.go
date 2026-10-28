@@ -458,3 +458,68 @@ func (g *GitCollector) GetCommitGraph(limit int) ([]core.CommitGraphNode, error)
 
 	return nodes, nil
 }
+
+// GetCommitDetail returns deep inspection data for a commit including file list, stats, and diff.
+func (g *GitCollector) GetCommitDetail(sha string) (*core.CommitDetail, error) {
+	if sha == "" {
+		sha = "HEAD"
+	}
+
+	// 1. Get raw commit metadata
+	format := "%H|%h|%P|%an|%ae|%aI|%s|%B"
+	out, err := g.run("log", "-1", fmt.Sprintf("--format=%s", format), sha)
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(out, "|")
+	if len(parts) < 7 {
+		return nil, fmt.Errorf("unexpected git log format for %s", sha)
+	}
+
+	fullSHA := parts[0]
+	shortSHA := parts[1]
+	parents := strings.Fields(parts[2])
+	author := parts[3]
+	email := parts[4]
+	ts, _ := time.Parse(time.RFC3339, parts[5])
+	subject := parts[6]
+	message := ""
+	if len(parts) > 7 {
+		message = parts[7]
+	}
+
+	// 2. Get changed files
+	nameStatusOut, _ := g.run("show", "--name-status", "--oneline", "-1", fullSHA)
+	var changedFiles []string
+	if nameStatusOut != "" {
+		lines := strings.Split(nameStatusOut, "\n")
+		if len(lines) > 1 {
+			for _, l := range lines[1:] {
+				l = strings.TrimSpace(l)
+				if l != "" {
+					changedFiles = append(changedFiles, l)
+				}
+			}
+		}
+	}
+
+	// 3. Get diff and stat
+	diffOut, _ := g.run("show", "--patch", "--stat", "-1", fullSHA)
+
+	return &core.CommitDetail{
+		Commit: core.Commit{
+			SHA:          fullSHA,
+			ShortSHA:     shortSHA,
+			ParentSHAs:   parents,
+			AuthorName:   author,
+			AuthorEmail:  email,
+			Timestamp:    ts,
+			Subject:      subject,
+			Message:      message,
+			FilesChanged: len(changedFiles),
+			ChangedFiles: changedFiles,
+		},
+		Diff: diffOut,
+	}, nil
+}

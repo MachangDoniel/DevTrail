@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -54,6 +56,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/activity", s.handleActivity)
 	mux.HandleFunc("/api/branches", s.handleBranches)
 	mux.HandleFunc("/api/git/graph", s.handleGitGraph)
+	mux.HandleFunc("/api/git/commit", s.handleGitCommit)
 	mux.HandleFunc("/api/tasks", s.handleTasks)
 	mux.HandleFunc("/api/tasks/status", s.handleTaskStatus)
 	mux.HandleFunc("/api/tasks/attach", s.handleTaskAttach)
@@ -325,7 +328,26 @@ func (s *Server) handleDoctor(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
-	jsonResponse(w, http.StatusOK, s.Config)
+	yamlPath := filepath.Join(s.RepoDir, ".devtrail", "config.yaml")
+	var yamlRaw string
+	if data, err := os.ReadFile(yamlPath); err == nil {
+		yamlRaw = string(data)
+	}
+	resp := map[string]interface{}{
+		"config":   s.Config,
+		"yaml_raw": yamlRaw,
+	}
+	jsonResponse(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleGitCommit(w http.ResponseWriter, r *http.Request) {
+	sha := r.URL.Query().Get("sha")
+	detail, err := s.Git.GetCommitDetail(sha)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	jsonResponse(w, http.StatusOK, detail)
 }
 
 func (s *Server) handleGitGraph(w http.ResponseWriter, r *http.Request) {
