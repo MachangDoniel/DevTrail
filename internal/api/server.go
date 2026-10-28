@@ -25,6 +25,7 @@ type Server struct {
 	EvidenceSvc  *services.EvidenceService
 	DoctorSvc    *services.DoctorService
 	ProjectSvc   *services.ProjectService
+	HandoffSvc   *services.HandoffService
 	Assets       fs.FS
 }
 
@@ -40,6 +41,7 @@ func NewServer(repoDir string, cfg *config.Config, store core.StorageInterface, 
 		EvidenceSvc:  services.NewEvidenceService(store, gitCol),
 		DoctorSvc:    services.NewDoctorService(repoDir, cfg),
 		ProjectSvc:   services.NewProjectService(repoDir, cfg, store),
+		HandoffSvc:   services.NewHandoffService(store, gitCol),
 		Assets:       assets,
 	}
 }
@@ -51,9 +53,13 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/status", s.handleStatus)
 	mux.HandleFunc("/api/activity", s.handleActivity)
 	mux.HandleFunc("/api/branches", s.handleBranches)
+	mux.HandleFunc("/api/git/graph", s.handleGitGraph)
 	mux.HandleFunc("/api/tasks", s.handleTasks)
+	mux.HandleFunc("/api/tasks/status", s.handleTaskStatus)
 	mux.HandleFunc("/api/tasks/attach", s.handleTaskAttach)
 	mux.HandleFunc("/api/tasks/note", s.handleTaskNote)
+	mux.HandleFunc("/api/tasks/handoff", s.handleTaskHandoff)
+	mux.HandleFunc("/api/timeline", s.handleTimeline)
 	mux.HandleFunc("/api/checkpoints", s.handleCheckpoints)
 	mux.HandleFunc("/api/evidence", s.handleEvidence)
 	mux.HandleFunc("/api/reports", s.handleReports)
@@ -320,6 +326,76 @@ func (s *Server) handleDoctor(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusOK, s.Config)
+}
+
+func (s *Server) handleGitGraph(w http.ResponseWriter, r *http.Request) {
+	nodes, err := s.Git.GetCommitGraph(60)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	jsonResponse(w, http.StatusOK, nodes)
+}
+
+func (s *Server) handleTaskStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, map[string]string{"error": "Method not allowed"})
+		return
+	}
+	var req struct {
+		TaskID string `json:"task_id"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		return
+	}
+	if err := s.Store.UpdateTaskStatus(req.TaskID, req.Status); err != nil {
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	jsonResponse(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+func (s *Server) handleTaskHandoff(w http.ResponseWriter, r *http.Request) {
+	taskID := r.URL.Query().Get("task_id")
+	if taskID == "" {
+		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "task_id query parameter required"})
+		return
+	}
+	pkg, err := s.HandoffSvc.GeneratePackage(taskID)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	jsonResponse(w, http.StatusOK, pkg)
+}
+
+func (s *Server) handleTimeline(w http.ResponseWriter, r *http.Request) {
+	tasks, err := s.Store.ListTasks("default")
+	if err != nil {
+		tasks = []core.Task{}
+	}
+
+	commits, _ := s.Git.CommitsBetween("", "", 30)
+	var filesMod, linesAdd, linesDel int
+	filesMap := make(map[string]bool)
+	for _, c := range commits {
+		linesAdd += c.Insertions
+		linesDel += c.Deletions
+		for _, f := range c.ChangedFiles {
+			filesMap[f] = true
+		}
+	}
+	filesMod = len(filesMap)
+
+	jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"parallel_tasks": len(tasks),
+		"files_modified": filesMod,
+		"lines_added":    linesAdd,
+		"lines_deleted":  linesDel,
+		"tasks":          tasks,
+	})
 }
 
 // OpenBrowser opens the dashboard URL in the default browser.

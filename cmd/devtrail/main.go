@@ -47,6 +47,7 @@ func init() {
 	rootCmd.AddCommand(checkpointCmd)
 	rootCmd.AddCommand(evidenceCmd)
 	rootCmd.AddCommand(activityCmd)
+	rootCmd.AddCommand(handoffCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(dashboardCmd)
 
@@ -772,6 +773,39 @@ var activityCmd = &cobra.Command{
 			fmt.Printf("  [%s] %-20s | Src: %-12s | Branch: %s %s [%s]\n",
 				e.OccurredAt.Format("2006-01-02 15:04:05"), e.EventType, e.Source, e.Branch, truncate(e.CommitSHA, 7), e.AttributionLevel)
 		}
+		return nil
+	},
+}
+
+// -------------------------------------------------------------
+// HANDOFF COMMAND
+// -------------------------------------------------------------
+var handoffCmd = &cobra.Command{
+	Use:   "handoff <task-id>",
+	Short: "Export an evidence-backed AI context handoff package for another model/agent",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoRoot, err := getRepoRoot()
+		if err != nil {
+			return err
+		}
+		cfg, err := config.LoadConfig(repoRoot)
+		if err != nil {
+			return err
+		}
+		db, err := getDB(repoRoot, cfg)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		svc := services.NewHandoffService(db, collector.NewGitCollector(repoRoot))
+		pkg, err := svc.GeneratePackage(args[0])
+		if err != nil {
+			return err
+		}
+
+		fmt.Print(pkg.FormattedPrompt)
 		return nil
 	},
 }

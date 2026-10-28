@@ -355,3 +355,106 @@ func isNumericOrDash(s string) bool {
 	_, err := strconv.Atoi(s)
 	return err == nil
 }
+
+// GetCommitGraph retrieves commits across all branches with lane allocation for visual graph rendering.
+func (g *GitCollector) GetCommitGraph(limit int) ([]core.CommitGraphNode, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	headSHA, _ := g.CurrentHeadSHA()
+
+	// Map of commit SHA -> list of ref names (branches, tags)
+	refMap := make(map[string][]string)
+	if branches, err := g.ListBranches(); err == nil {
+		for _, b := range branches {
+			refMap[b.TargetSHA] = append(refMap[b.TargetSHA], b.RefName)
+		}
+	}
+	if tags, err := g.ListTags(); err == nil {
+		for _, t := range tags {
+			refMap[t.TargetSHA] = append(refMap[t.TargetSHA], t.RefName)
+		}
+	}
+
+	// Fetch raw commits across all heads
+	// Format: %H|%h|%P|%an|%aI|%s
+	format := "%H|%h|%P|%an|%aI|%s"
+	out, err := g.run("log", "--all", "--topo-order", fmt.Sprintf("-n%d", limit), "--format="+format)
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+
+	lines := strings.Split(out, "\n")
+	var nodes []core.CommitGraphNode
+
+	// Lane tracking
+	lanes := make([]string, 0) // active SHA in each lane
+	getFreeLane := func(targetSHA string) int {
+		for i, sha := range lanes {
+			if sha == targetSHA {
+				return i
+			}
+		}
+		for i, sha := range lanes {
+			if sha == "" {
+				lanes[i] = targetSHA
+				return i
+			}
+		}
+		lanes = append(lanes, targetSHA)
+		return len(lanes) - 1
+	}
+
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			continue
+		}
+		parts := strings.Split(l, "|")
+		if len(parts) < 6 {
+			continue
+		}
+
+		sha := parts[0]
+		shortSHA := parts[1]
+		parents := strings.Fields(parts[2])
+		author := parts[3]
+		tsStr := parts[4]
+		subject := parts[5]
+
+		ts, err := time.Parse(time.RFC3339, tsStr)
+		if err != nil {
+			ts = time.Now().UTC()
+		}
+
+		lane := getFreeLane(sha)
+
+		// Update lane state for parents
+		if len(parents) > 0 {
+			lanes[lane] = parents[0]
+			for _, p := range parents[1:] {
+				getFreeLane(p)
+			}
+		} else {
+			lanes[lane] = ""
+		}
+
+		nodes = append(nodes, core.CommitGraphNode{
+			SHA:        sha,
+			ShortSHA:   shortSHA,
+			ParentSHAs: parents,
+			AuthorName: author,
+			Timestamp:  ts,
+			Subject:    subject,
+			Lane:       lane,
+			Refs:       refMap[sha],
+			IsHead:     sha == headSHA,
+		})
+	}
+
+	return nodes, nil
+}

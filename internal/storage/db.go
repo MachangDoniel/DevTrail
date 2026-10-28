@@ -110,6 +110,9 @@ func (d *DB) migrate() error {
 		status TEXT NOT NULL DEFAULT 'planned',
 		objective TEXT,
 		notes TEXT,
+		ai_provider TEXT DEFAULT 'claude',
+		test_status TEXT DEFAULT 'unverified',
+		uncommitted INTEGER DEFAULT 0,
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
@@ -209,8 +212,16 @@ func (d *DB) migrate() error {
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
 	`
-	_, err := d.conn.Exec(schema)
-	return err
+	if _, err := d.conn.Exec(schema); err != nil {
+		return err
+	}
+
+	// Safe idempotent schema evolutions
+	_, _ = d.conn.Exec("ALTER TABLE tasks ADD COLUMN ai_provider TEXT DEFAULT 'claude'")
+	_, _ = d.conn.Exec("ALTER TABLE tasks ADD COLUMN test_status TEXT DEFAULT 'unverified'")
+	_, _ = d.conn.Exec("ALTER TABLE tasks ADD COLUMN uncommitted INTEGER DEFAULT 0")
+
+	return nil
 }
 
 // UpsertProject inserts or updates the project entry.
@@ -341,24 +352,36 @@ func (d *DB) CreateTask(t *core.Task) error {
 	if t.ID == "" {
 		t.ID = fmt.Sprintf("DT-%04d", time.Now().Unix()%10000)
 	}
+	if t.AIProvider == "" {
+		t.AIProvider = "claude"
+	}
+	if t.TestStatus == "" {
+		t.TestStatus = "unverified"
+	}
 	now := time.Now().UTC()
 	t.CreatedAt = now
 	t.UpdatedAt = now
 
+	uncommittedInt := 0
+	if t.Uncommitted {
+		uncommittedInt = 1
+	}
+
 	query := `
-	INSERT INTO tasks (id, project_id, title, task_type, status, objective, notes, created_at, updated_at)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	INSERT INTO tasks (id, project_id, title, task_type, status, objective, notes, ai_provider, test_status, uncommitted, created_at, updated_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	_, err := d.conn.Exec(query, t.ID, t.ProjectID, t.Title, t.TaskType, t.Status, t.Objective, t.Notes, t.CreatedAt, t.UpdatedAt)
+	_, err := d.conn.Exec(query, t.ID, t.ProjectID, t.Title, t.TaskType, t.Status, t.Objective, t.Notes, t.AIProvider, t.TestStatus, uncommittedInt, t.CreatedAt, t.UpdatedAt)
 	return err
 }
 
 // GetTask retrieves a task along with its linked branches/commits.
 func (d *DB) GetTask(id string) (*core.Task, error) {
 	var t core.Task
-	var obj, notes sql.NullString
-	query := `SELECT id, project_id, title, task_type, status, objective, notes, created_at, updated_at FROM tasks WHERE id = ?`
-	err := d.conn.QueryRow(query, id).Scan(&t.ID, &t.ProjectID, &t.Title, &t.TaskType, &t.Status, &obj, &notes, &t.CreatedAt, &t.UpdatedAt)
+	var obj, notes, aiProv, testStat sql.NullString
+	var uncomInt int
+	query := `SELECT id, project_id, title, task_type, status, objective, notes, COALESCE(ai_provider, 'claude'), COALESCE(test_status, 'unverified'), COALESCE(uncommitted, 0), created_at, updated_at FROM tasks WHERE id = ?`
+	err := d.conn.QueryRow(query, id).Scan(&t.ID, &t.ProjectID, &t.Title, &t.TaskType, &t.Status, &obj, &notes, &aiProv, &testStat, &uncomInt, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -368,6 +391,13 @@ func (d *DB) GetTask(id string) (*core.Task, error) {
 	if notes.Valid {
 		t.Notes = notes.String
 	}
+	if aiProv.Valid {
+		t.AIProvider = aiProv.String
+	}
+	if testStat.Valid {
+		t.TestStatus = testStat.String
+	}
+	t.Uncommitted = uncomInt == 1
 
 	// Fetch links
 	linkQuery := `SELECT link_type, link_value FROM task_links WHERE task_id = ?`
@@ -391,7 +421,7 @@ func (d *DB) GetTask(id string) (*core.Task, error) {
 
 // ListTasks returns all tasks for a project.
 func (d *DB) ListTasks(projectID string) ([]core.Task, error) {
-	query := `SELECT id, project_id, title, task_type, status, objective, notes, created_at, updated_at FROM tasks ORDER BY created_at DESC`
+	query := `SELECT id, project_id, title, task_type, status, objective, notes, COALESCE(ai_provider, 'claude'), COALESCE(test_status, 'unverified'), COALESCE(uncommitted, 0), created_at, updated_at FROM tasks ORDER BY created_at DESC`
 	rows, err := d.conn.Query(query)
 	if err != nil {
 		return nil, err
@@ -401,8 +431,9 @@ func (d *DB) ListTasks(projectID string) ([]core.Task, error) {
 	var tasks []core.Task
 	for rows.Next() {
 		var t core.Task
-		var obj, notes sql.NullString
-		if err := rows.Scan(&t.ID, &t.ProjectID, &t.Title, &t.TaskType, &t.Status, &obj, &notes, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		var obj, notes, aiProv, testStat sql.NullString
+		var uncomInt int
+		if err := rows.Scan(&t.ID, &t.ProjectID, &t.Title, &t.TaskType, &t.Status, &obj, &notes, &aiProv, &testStat, &uncomInt, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if obj.Valid {
@@ -411,8 +442,34 @@ func (d *DB) ListTasks(projectID string) ([]core.Task, error) {
 		if notes.Valid {
 			t.Notes = notes.String
 		}
+		if aiProv.Valid {
+			t.AIProvider = aiProv.String
+		}
+		if testStat.Valid {
+			t.TestStatus = testStat.String
+		}
+		t.Uncommitted = uncomInt == 1
 		tasks = append(tasks, t)
 	}
+
+	// Attach links for tasks
+	for i := range tasks {
+		linkQuery := `SELECT link_type, link_value FROM task_links WHERE task_id = ?`
+		if lRows, err := d.conn.Query(linkQuery, tasks[i].ID); err == nil {
+			for lRows.Next() {
+				var lType, lVal string
+				if err := lRows.Scan(&lType, &lVal); err == nil {
+					if lType == "branch" {
+						tasks[i].Branches = append(tasks[i].Branches, lVal)
+					} else if lType == "commit" {
+						tasks[i].Commits = append(tasks[i].Commits, lVal)
+					}
+				}
+			}
+			lRows.Close()
+		}
+	}
+
 	return tasks, rows.Err()
 }
 

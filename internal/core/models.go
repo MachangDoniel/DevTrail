@@ -36,13 +36,14 @@ type StorageInterface interface {
 
 // Task Statuses
 const (
-	TaskStatusPlanned         = "planned"
-	TaskStatusInProgress      = "in_progress"
-	TaskStatusBlocked         = "blocked"
-	TaskStatusReadyForReview  = "ready_for_review"
-	TaskStatusMerged          = "merged"
-	TaskStatusReleased        = "released"
-	TaskStatusClosed          = "closed"
+	TaskStatusPlanned        = "planned"
+	TaskStatusInProgress     = "in_progress"
+	TaskStatusBlocked        = "blocked"
+	TaskStatusReadyForReview = "ready_for_review"
+	TaskStatusTesting        = "testing"
+	TaskStatusMerged         = "merged"
+	TaskStatusReleased       = "released"
+	TaskStatusClosed         = "closed"
 )
 
 // Report Types
@@ -148,17 +149,49 @@ type Event struct {
 
 // Task represents a developer feature, fix, or work item.
 type Task struct {
-	ID        string     `json:"id"` // e.g. DT-0001
-	ProjectID string     `json:"project_id"`
-	Title     string     `json:"title"`
-	TaskType  string     `json:"task_type"` // 'feature', 'fix', 'refactor', 'chore'
-	Status    string     `json:"status"`
-	Objective string     `json:"objective,omitempty"`
-	Notes     string     `json:"notes,omitempty"`
-	Branches  []string   `json:"branches,omitempty"`
-	Commits   []string   `json:"commits,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID          string    `json:"id"` // e.g. DT-0001
+	ProjectID   string    `json:"project_id"`
+	Title       string    `json:"title"`
+	TaskType    string    `json:"task_type"` // 'feature', 'fix', 'refactor', 'chore'
+	Status      string    `json:"status"`
+	Objective   string    `json:"objective,omitempty"`
+	Notes       string    `json:"notes,omitempty"`
+	AIProvider  string    `json:"ai_provider,omitempty"` // claude, chatgpt, gemini, copilot, local, human
+	TestStatus  string    `json:"test_status,omitempty"` // passed, failed, unverified
+	Uncommitted bool      `json:"uncommitted,omitempty"`
+	Branches    []string  `json:"branches,omitempty"`
+	Commits     []string  `json:"commits,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// CommitGraphNode represents a node in the visual GitKraken-style branch graph.
+type CommitGraphNode struct {
+	SHA        string    `json:"sha"`
+	ShortSHA   string    `json:"short_sha"`
+	ParentSHAs []string  `json:"parent_shas"`
+	AuthorName string    `json:"author_name"`
+	Timestamp  time.Time `json:"timestamp"`
+	Subject    string    `json:"subject"`
+	Lane       int       `json:"lane"`
+	Refs       []string  `json:"refs"`
+	IsHead     bool      `json:"is_head"`
+	TaskID     string    `json:"task_id,omitempty"`
+}
+
+// HandoffPackage represents an evidence-backed context package for transferring work between AI providers.
+type HandoffPackage struct {
+	TaskID          string       `json:"task_id"`
+	Title           string       `json:"title"`
+	Status          string       `json:"status"`
+	Objective       string       `json:"objective"`
+	Notes           string       `json:"notes"`
+	CurrentBranch   string       `json:"current_branch"`
+	HeadSHA         string       `json:"head_sha"`
+	Commits         []Commit     `json:"commits"`
+	LatestEvidence  *Evidence    `json:"latest_evidence,omitempty"`
+	Checkpoints     []Checkpoint `json:"checkpoints"`
+	FormattedPrompt string       `json:"formatted_prompt"`
 }
 
 // TaskLink maps a relationship between a task and a branch, commit, session, etc.

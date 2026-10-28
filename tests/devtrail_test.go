@@ -198,3 +198,47 @@ func TestDoctorDiagnostics(t *testing.T) {
 		t.Fatalf("expected at least 5 diagnostic items, got %d", len(report.Items))
 	}
 }
+
+func TestCommitGraph(t *testing.T) {
+	wd, _ := os.Getwd()
+	gitCol := collector.NewGitCollector(wd)
+	nodes, err := gitCol.GetCommitGraph(20)
+	if err != nil {
+		t.Fatalf("failed to get commit graph: %v", err)
+	}
+	if len(nodes) == 0 {
+		t.Fatal("expected at least 1 commit in graph, got 0")
+	}
+	if nodes[0].SHA == "" || nodes[0].ShortSHA == "" {
+		t.Fatal("commit graph node missing SHA")
+	}
+}
+
+func TestHandoffPackage(t *testing.T) {
+	wd, _ := os.Getwd()
+	dbPath := filepath.Join(wd, ".devtrail", "state.db")
+	db, err := storage.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	taskSvc := services.NewTaskService(db, collector.NewGitCollector(wd))
+	task, err := taskSvc.CreateTask("Test Handoff Feature", "feature", "Verify handoff prompt formatting", true)
+	if err != nil {
+		t.Fatalf("failed to create task: %v", err)
+	}
+
+	handoffSvc := services.NewHandoffService(db, collector.NewGitCollector(wd))
+	pkg, err := handoffSvc.GeneratePackage(task.ID)
+	if err != nil {
+		t.Fatalf("failed to generate handoff package: %v", err)
+	}
+
+	if pkg.TaskID != task.ID {
+		t.Fatalf("expected task id %s, got %s", task.ID, pkg.TaskID)
+	}
+	if pkg.FormattedPrompt == "" {
+		t.Fatal("expected formatted prompt to not be empty")
+	}
+}

@@ -7,15 +7,17 @@
   <style>
     :root {
       --bg-base: #090d16;
-      --bg-surface: #111827;
-      --bg-card: rgba(17, 24, 39, 0.75);
-      --bg-card-hover: rgba(31, 41, 55, 0.85);
+      --bg-surface: #101625;
+      --bg-card: rgba(18, 25, 41, 0.85);
+      --bg-card-hover: rgba(28, 38, 62, 0.95);
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-accent: rgba(56, 189, 248, 0.3);
-      --text-main: #f9fafb;
-      --text-muted: #9ca3af;
+      --border-accent: rgba(56, 189, 248, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
       --cyan: #38bdf8;
       --blue: #3b82f6;
+      --purple: #a855f7;
       --emerald: #10b981;
       --amber: #f59e0b;
       --rose: #f43f5e;
@@ -29,6 +31,7 @@
       font-family: var(--font-sans);
       min-height: 100vh;
       display: flex;
+      overflow: hidden;
     }
 
     /* Sidebar Navigation */
@@ -39,73 +42,102 @@
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      z-index: 20;
     }
     .brand {
-      padding: 1.5rem 1.25rem;
+      padding: 1.25rem 1.25rem 1rem;
       display: flex;
       align-items: center;
       gap: 0.75rem;
       border-bottom: 1px solid var(--border-subtle);
     }
     .brand-logo {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
       color: #000;
-      font-size: 1rem;
+      font-size: 1.05rem;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
     }
-    .brand-text { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
-    .nav-list { list-style: none; padding: 1rem 0.5rem; flex: 1; overflow-y: auto; }
+    .brand-title { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-sub { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .nav-list { list-style: none; padding: 0.85rem 0.6rem; flex: 1; overflow-y: auto; }
+    .nav-label { font-size: 0.68rem; text-transform: uppercase; color: var(--text-dim); padding: 0.5rem 0.75rem 0.25rem; font-weight: 700; letter-spacing: 0.06em; }
     .nav-item {
       padding: 0.65rem 0.85rem;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-weight: 500;
       color: var(--text-muted);
       display: flex;
       align-items: center;
       gap: 0.65rem;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.2rem;
       transition: all 0.15s ease;
     }
     .nav-item:hover { color: var(--text-main); background: var(--bg-card-hover); }
     .nav-item.active {
       color: var(--cyan);
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
       font-weight: 600;
     }
 
-    /* Main Content Area */
-    main {
+    /* Main Container */
+    .app-main {
       flex: 1;
-      padding: 2rem;
-      overflow-y: auto;
-      max-height: 100vh;
-    }
-    header {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid var(--border-subtle);
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
     }
-    .title-group h1 { font-size: 1.6rem; font-weight: 700; }
-    .title-group p { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; }
-    .btn-group { display: flex; gap: 0.5rem; }
+
+    /* Top Bar */
+    .topbar {
+      height: 64px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+    .repo-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+    }
+    .branch-pill {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
     button {
       background: var(--bg-card-hover);
       color: var(--text-main);
       border: 1px solid var(--border-subtle);
       border-radius: 6px;
-      padding: 0.5rem 0.9rem;
+      padding: 0.45rem 0.85rem;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
@@ -116,83 +148,282 @@
     }
     button:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
     button.btn-primary {
-      background: var(--cyan);
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
       color: #000;
       border: none;
+      font-weight: 700;
     }
-    button.btn-primary:hover { opacity: 0.9; }
+    button.btn-primary:hover { opacity: 0.9; box-shadow: 0 0 12px rgba(56, 189, 248, 0.4); }
+    button.btn-purple {
+      background: rgba(168, 85, 247, 0.18);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    button.btn-purple:hover { background: rgba(168, 85, 247, 0.28); }
 
-    /* Cards & Stats */
+    /* Content Area */
+    .viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.75rem;
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Stat Cards */
     .stat-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 1rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
     }
     .stat-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 1.25rem;
-      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 1.2rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
     }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
-    .stat-val { font-size: 1.5rem; font-weight: 700; margin-top: 0.4rem; font-family: var(--font-mono); }
-    .stat-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.4), transparent);
+    }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+    .stat-val { font-size: 1.6rem; font-weight: 700; margin-top: 0.35rem; font-family: var(--font-mono); }
+    .stat-desc { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.25rem; }
 
+    /* Content Cards */
     .content-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 1.5rem;
+      border-radius: 12px;
+      padding: 1.4rem;
       margin-bottom: 1.5rem;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
     }
-    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-
-    /* Tables */
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
-    th { color: var(--text-muted); padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.75rem; text-transform: uppercase; }
-    td { padding: 0.85rem 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
-    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .card-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
 
     /* Badges */
     .badge {
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
       border-radius: 9999px;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
       display: inline-block;
     }
     .badge-cyan { background: rgba(56, 189, 248, 0.15); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-purple { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); }
     .badge-green { background: rgba(16, 185, 129, 0.15); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
     .badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
     .badge-rose { background: rgba(244, 63, 94, 0.15); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.3); }
 
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.86rem; }
+    th { color: var(--text-dim); padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 0.85rem 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* ========================================================= */
+    /* VIEW 2: GIT GRAPH EXPLORER (GitKraken-style)              */
+    /* ========================================================= */
+    .git-graph-container {
+      display: flex;
+      gap: 1.25rem;
+      min-height: 520px;
+    }
+    .graph-canvas-pane {
+      flex: 1;
+      background: #0d121f;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: 600px;
+    }
+    .commit-row {
+      display: flex;
+      align-items: center;
+      padding: 0.45rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      gap: 0.75rem;
+      font-size: 0.84rem;
+      transition: background 0.15s ease;
+    }
+    .commit-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .commit-row.selected { background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .rail-cell {
+      width: 70px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      height: 24px;
+    }
+    .rail-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px currentColor;
+      position: absolute;
+    }
+    .graph-inspector-pane {
+      width: 380px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1.25rem;
+      overflow-y: auto;
+      max-height: 600px;
+    }
+
+    /* ========================================================= */
+    /* VIEW 3: ACTIVITY TIMELINE (Sonar / Traverse Gantt style)  */
+    /* ========================================================= */
+    .timeline-banner {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+    }
+    .banner-stat { display: flex; flex-direction: column; }
+    .banner-num { font-size: 1.7rem; font-weight: 800; font-family: var(--font-mono); }
+    .banner-lbl { font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-top: 0.2rem; }
+    .num-green { color: var(--emerald); }
+    .num-red { color: var(--rose); }
+
+    .gantt-board {
+      background: #0d121f;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .gantt-header-dates {
+      display: flex;
+      margin-left: 220px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.5rem;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+    .gantt-date-col { flex: 1; text-align: center; }
+    .gantt-track {
+      display: flex;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .gantt-track-label {
+      width: 220px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 0.5rem;
+    }
+    .gantt-track-body { flex: 1; position: relative; height: 26px; }
+    .gantt-bar {
+      position: absolute;
+      height: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #000;
+    }
+    .bar-completed { background: linear-gradient(90deg, #10b981, #059669); color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+    .bar-working { background: linear-gradient(90deg, #a855f7, #6366f1); color: #fff; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); }
+
+    /* ========================================================= */
+    /* VIEW 4: KANBAN FEATURE TRACKER (Command Center style)     */
+    /* ========================================================= */
+    .kanban-board {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding-bottom: 1rem;
+      min-height: 580px;
+    }
+    .kanban-col {
+      flex: 1;
+      min-width: 240px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 0.75rem;
+    }
+    .col-title { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .col-count { background: rgba(255, 255, 255, 0.08); padding: 0.15rem 0.45rem; border-radius: 9999px; font-size: 0.72rem; font-family: var(--font-mono); }
+    .kanban-cards { flex: 1; display: flex; flex-direction: column; gap: 0.65rem; overflow-y: auto; }
+    .task-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .task-card:hover { border-color: var(--border-accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+    .task-card.active-selected { border-color: var(--cyan); box-shadow: 0 0 12px rgba(56, 189, 248, 0.25); }
+    .task-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; }
+    .task-id { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: var(--cyan); }
+    .task-title { font-size: 0.86rem; font-weight: 600; line-height: 1.35; margin-bottom: 0.4rem; }
+    .task-meta-pills { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
+
+    /* Drawer / Inspector */
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 440px;
+      background: var(--bg-surface); border-left: 1px solid var(--border-accent);
+      padding: 1.75rem; display: flex; flex-direction: column; z-index: 50;
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.6);
+      transform: translateX(100%); transition: transform 0.25s ease;
+    }
+    .drawer.active { transform: translateX(0); }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .drawer-body { flex: 1; overflow-y: auto; }
+
     /* Modals */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 100;
     }
     .modal-overlay.active { display: flex; }
     .modal {
       background: var(--bg-surface); border: 1px solid var(--border-accent);
-      border-radius: 12px; width: 500px; max-width: 90%; padding: 1.75rem;
+      border-radius: 12px; width: 520px; max-width: 90%; padding: 1.75rem;
     }
     .modal h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
-    .form-group { margin-bottom: 1.2rem; }
-    .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem; }
+    .form-group { margin-bottom: 1.15rem; }
+    .form-group label { display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase; font-weight: 600; }
     .form-control {
       width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle);
       border-radius: 6px; padding: 0.55rem 0.75rem; color: var(--text-main); font-size: 0.88rem;
     }
     .form-control:focus { outline: none; border-color: var(--cyan); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem; }
-
-    /* Tab views */
-    .view-panel { display: none; }
-    .view-panel.active { display: block; }
   </style>
 </head>
 <body>
@@ -201,225 +432,296 @@
   <aside>
     <div class="brand">
       <div class="brand-logo">DT</div>
-      <div class="brand-text">DevTrail</div>
+      <div>
+        <div class="brand-title">DevTrail</div>
+        <div class="brand-sub">Activity Intelligence</div>
+      </div>
     </div>
     <ul class="nav-list">
-      <li class="nav-item active" onclick="switchView('overview')">1. Overview</li>
-      <li class="nav-item" onclick="switchView('activity')">2. Activity Timeline</li>
-      <li class="nav-item" onclick="switchView('branches')">3. Branches & Worktrees</li>
-      <li class="nav-item" onclick="switchView('tasks')">4. Features & Tasks</li>
-      <li class="nav-item" onclick="switchView('reports')">5. Reports Archive</li>
-      <li class="nav-item" onclick="switchView('schedules')">6. Schedules</li>
-      <li class="nav-item" onclick="switchView('triggers')">7. Triggers & Hooks</li>
-      <li class="nav-item" onclick="switchView('evidence')">8. Test Evidence</li>
+      <div class="nav-label">Cockpit Views</div>
+      <li class="nav-item active" onclick="switchView('overview')">1. Project Overview</li>
+      <li class="nav-item" onclick="switchView('graph')">2. Git Branch Explorer</li>
+      <li class="nav-item" onclick="switchView('timeline')">3. Activity Timeline</li>
+      <li class="nav-item" onclick="switchView('kanban')">4. Feature Tracker</li>
+      <li class="nav-item" onclick="switchView('reports')">5. Release Reports</li>
+      <li class="nav-item" onclick="switchView('ledger')">6. AI Work Ledger</li>
+
+      <div class="nav-label" style="margin-top:0.75rem;">Verifications & Config</div>
+      <li class="nav-item" onclick="switchView('evidence')">7. Test Evidence</li>
+      <li class="nav-item" onclick="switchView('activity')">8. Raw Event Log</li>
       <li class="nav-item" onclick="switchView('settings')">9. Settings & Privacy</li>
-      <li class="nav-item" onclick="switchView('diagnostics')">10. Diagnostics (Doctor)</li>
+      <li class="nav-item" onclick="switchView('doctor')">10. Diagnostics (Doctor)</li>
     </ul>
   </aside>
 
-  <!-- Main Content -->
-  <main>
-    <header>
-      <div class="title-group">
-        <h1 id="header-title">Overview</h1>
-        <p id="header-sub">Repository intelligence and status</p>
+  <!-- Main View Area -->
+  <div class="app-main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="repo-badge">
+          <span id="top-repo-name">DevTrail</span>
+          <span class="branch-pill" id="top-branch-pill">main</span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);" id="top-head-sha">HEAD: ...</div>
       </div>
-      <div class="btn-group">
-        <button class="btn-primary" onclick="openModal('reportModal')">+ Generate Report</button>
-        <button onclick="openModal('taskModal')">+ New Task</button>
+      <div class="topbar-actions">
+        <button class="btn-primary" onclick="openModal('taskModal')">+ New Task</button>
+        <button class="btn-purple" onclick="openModal('reportModal')">+ Generate Report</button>
         <button onclick="openModal('checkpointModal')">Checkpoint</button>
+        <button onclick="openModal('evidenceModal')">Attach Evidence</button>
       </div>
-    </header>
+    </div>
 
-    <!-- VIEW 1: OVERVIEW -->
-    <div id="view-overview" class="view-panel active">
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-label">Active Branch</div>
-          <div class="stat-val" id="stat-branch">—</div>
-          <div class="stat-desc" id="stat-head">HEAD: —</div>
+    <div class="viewport">
+
+      <!-- VIEW 1: OVERVIEW COCKPIT (GitLookout + Beacon style) -->
+      <div id="view-overview" class="view-panel active">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Active Branch</div>
+            <div class="stat-val" id="ov-branch">main</div>
+            <div class="stat-desc" id="ov-head">HEAD: c7f67151</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Working Tree State</div>
+            <div class="stat-val" id="ov-clean" style="color:var(--emerald);">Clean</div>
+            <div class="stat-desc" id="ov-changes">0 staged, 0 modified</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Features</div>
+            <div class="stat-val" id="ov-tasks" style="color:var(--purple);">0</div>
+            <div class="stat-desc">Tracked work items</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Release Reports</div>
+            <div class="stat-val" id="ov-reports" style="color:var(--cyan);">0</div>
+            <div class="stat-desc">Archived HTML reports</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Working Tree</div>
-          <div class="stat-val" id="stat-clean">Clean</div>
-          <div class="stat-desc" id="stat-changes">0 changes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Tasks / Features</div>
-          <div class="stat-val" id="stat-tasks">0</div>
-          <div class="stat-desc">Tracked work items</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Generated Reports</div>
-          <div class="stat-val" id="stat-reports">0</div>
-          <div class="stat-desc">Saved HTML archives</div>
+
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div class="card-title">Live Intelligence Timeline</div>
+            <button onclick="loadOverview()">Refresh Facts</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Timestamp</th><th>Event Type</th><th>Source</th><th>Branch / Ref</th><th>Attribution</th><th>Action</th></tr>
+            </thead>
+            <tbody id="overview-events-body"></tbody>
+          </table>
         </div>
       </div>
 
-      <div class="content-card">
-        <div class="card-title">Recent Intelligence Activity</div>
-        <table>
-          <thead>
-            <tr><th>Time</th><th>Event</th><th>Source</th><th>Branch / SHA</th><th>Attribution</th></tr>
-          </thead>
-          <tbody id="overview-activity-table">
-            <tr><td colspan="5" style="color:var(--text-muted); text-align:center;">Loading activity...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <!-- VIEW 2: GIT GRAPH EXPLORER (GitKraken visual graph) -->
+      <div id="view-graph" class="view-panel">
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div>
+              <div class="card-title">Visual Branch Ancestry & Commit Rails</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">Colored rails show branch divergence, merges, and head refs</div>
+            </div>
+            <button onclick="loadGitGraph()">Refresh Graph</button>
+          </div>
 
-    <!-- VIEW 2: ACTIVITY -->
-    <div id="view-activity" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">Immutable Event Log</div>
-        <table>
-          <thead>
-            <tr><th>Observed At</th><th>Type</th><th>Source</th><th>Branch / Commit</th><th>Attribution</th><th>Details</th></tr>
-          </thead>
-          <tbody id="full-activity-table"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- VIEW 3: BRANCHES & WORKTREES -->
-    <div id="view-branches" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">Active Git Worktrees</div>
-        <table>
-          <thead><tr><th>Path</th><th>Branch</th><th>HEAD SHA</th><th>Status</th></tr></thead>
-          <tbody id="worktrees-table"></tbody>
-        </table>
-      </div>
-      <div class="content-card">
-        <div class="card-title">Local Branches & Tracking</div>
-        <table>
-          <thead><tr><th>Branch</th><th>Target SHA</th><th>Upstream</th><th>Ahead / Behind</th></tr></thead>
-          <tbody id="branches-table"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- VIEW 4: TASKS -->
-    <div id="view-tasks" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">
-          <span>Features & Work Items</span>
-          <button class="btn-primary" onclick="openModal('taskModal')">+ Create Task</button>
+          <div class="git-graph-container">
+            <div class="graph-canvas-pane" id="graph-list">Loading commit rails...</div>
+            <div class="graph-inspector-pane" id="graph-inspector">
+              <div style="color:var(--text-dim); text-align:center; padding-top:4rem;">Click a commit on the left to inspect its diff stats, linked tasks, and parent lineage.</div>
+            </div>
+          </div>
         </div>
-        <table>
-          <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>Status</th><th>Linked Branches</th><th>Action</th></tr></thead>
-          <tbody id="tasks-table"></tbody>
-        </table>
       </div>
-    </div>
 
-    <!-- VIEW 5: REPORTS -->
-    <div id="view-reports" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">
-          <span>Report Archive</span>
-          <button class="btn-primary" onclick="openModal('reportModal')">+ Generate Report</button>
+      <!-- VIEW 3: ACTIVITY TIMELINE (Gantt-style horizontal tracks) -->
+      <div id="view-timeline" class="view-panel">
+        <div class="timeline-banner">
+          <div class="banner-stat">
+            <div class="banner-num" id="tl-parallel-tasks">0</div>
+            <div class="banner-lbl">Parallel Tasks</div>
+          </div>
+          <div class="banner-stat">
+            <div class="banner-num" id="tl-files-mod">0</div>
+            <div class="banner-lbl">Files Modified</div>
+          </div>
+          <div class="banner-stat">
+            <div class="banner-num num-green" id="tl-lines-add">+0</div>
+            <div class="banner-lbl">Lines Added</div>
+          </div>
+          <div class="banner-stat">
+            <div class="banner-num num-red" id="tl-lines-del">-0</div>
+            <div class="banner-lbl">Lines Deleted</div>
+          </div>
         </div>
-        <table>
-          <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Scope</th><th>Created</th><th>Action</th></tr></thead>
-          <tbody id="reports-table"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- VIEW 6: SCHEDULES -->
-    <div id="view-schedules" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">Automated Schedules</div>
-        <table>
-          <thead><tr><th>Name</th><th>Frequency</th><th>Report Type</th><th>Window</th><th>Catch-Up Policy</th><th>Status</th></tr></thead>
-          <tbody id="schedules-table">
-            <tr><td>daily-activity</td><td>Daily @ 18:00</td><td>Activity</td><td>previous_calendar_day</td><td>run_once</td><td><span class="badge badge-green">Enabled</span></td></tr>
-            <tr><td>weekly-summary</td><td>Weekly on Friday @ 17:00</td><td>Activity</td><td>previous_calendar_week</td><td>run_once</td><td><span class="badge badge-green">Enabled</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- VIEW 7: TRIGGERS & HOOKS -->
-    <div id="view-triggers" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">Git Event Triggers</div>
-        <table>
-          <thead><tr><th>Trigger Name</th><th>Event Pattern</th><th>Output Report</th><th>Debounce</th><th>Status</th></tr></thead>
-          <tbody id="triggers-table">
-            <tr><td>main-merges</td><td>merge:main</td><td>Release Integration</td><td>30s</td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr><td>release-tags</td><td>tag:v*</td><td>Versioned Release</td><td>Immediate</td><td><span class="badge badge-green">Active</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- VIEW 8: EVIDENCE -->
-    <div id="view-evidence" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">
-          <span>Test & Build Verification</span>
-          <button onclick="openModal('evidenceModal')">+ Attach Evidence</button>
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div class="card-title">Chronological Feature Evolution Tracks</div>
+            <div style="display:flex; gap:0.5rem; align-items:center; font-size:0.75rem;">
+              <span class="badge badge-green">Completed</span>
+              <span class="badge badge-purple">In Progress</span>
+            </div>
+          </div>
+          <div class="gantt-board" id="gantt-board-container">
+            <div class="gantt-header-dates" id="gantt-dates-row"></div>
+            <div id="gantt-tracks-list"></div>
+          </div>
         </div>
-        <table>
-          <thead><tr><th>Type</th><th>Result</th><th>Command</th><th>Commit SHA</th><th>Duration</th><th>Recorded</th></tr></thead>
-          <tbody id="evidence-table"></tbody>
-        </table>
       </div>
-    </div>
 
-    <!-- VIEW 9: SETTINGS & PRIVACY -->
-    <div id="view-settings" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">Project & Storage Configuration</div>
-        <pre id="config-yaml" style="background:var(--bg-base); padding:1rem; border-radius:8px; font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan);"></pre>
-      </div>
-    </div>
+      <!-- VIEW 4: KANBAN FEATURE TRACKER (Command Center board) -->
+      <div id="view-kanban" class="view-panel">
+        <div class="kanban-board">
+          <div class="kanban-col" id="col-planned">
+            <div class="col-header">
+              <span class="col-title">Planning</span>
+              <span class="col-count" id="count-planned">0</span>
+            </div>
+            <div class="kanban-cards" id="cards-planned"></div>
+          </div>
 
-    <!-- VIEW 10: DIAGNOSTICS -->
-    <div id="view-diagnostics" class="view-panel">
-      <div class="content-card">
-        <div class="card-title">
-          <span>System Doctor</span>
-          <button onclick="copyDiagnostics()">Copy Redacted Diagnostics</button>
+          <div class="kanban-col" id="col-in_progress">
+            <div class="col-header">
+              <span class="col-title" style="color:var(--purple);">Working</span>
+              <span class="col-count" id="count-in_progress">0</span>
+            </div>
+            <div class="kanban-cards" id="cards-in_progress"></div>
+          </div>
+
+          <div class="kanban-col" id="col-ready_for_review">
+            <div class="col-header">
+              <span class="col-title" style="color:var(--cyan);">Review</span>
+              <span class="col-count" id="count-ready_for_review">0</span>
+            </div>
+            <div class="kanban-cards" id="cards-ready_for_review"></div>
+          </div>
+
+          <div class="kanban-col" id="col-testing">
+            <div class="col-header">
+              <span class="col-title" style="color:var(--amber);">In Testing</span>
+              <span class="col-count" id="count-testing">0</span>
+            </div>
+            <div class="kanban-cards" id="cards-testing"></div>
+          </div>
+
+          <div class="kanban-col" id="col-merged">
+            <div class="col-header">
+              <span class="col-title" style="color:var(--emerald);">Verified</span>
+              <span class="col-count" id="count-merged">0</span>
+            </div>
+            <div class="kanban-cards" id="cards-merged"></div>
+          </div>
         </div>
-        <div id="doctor-list" style="margin-top: 1rem;">Loading health checks...</div>
       </div>
-    </div>
-  </main>
 
-  <!-- MODAL: Generate Report -->
-  <div class="modal-overlay" id="reportModal">
-    <div class="modal">
-      <h2>Generate Report</h2>
-      <div class="form-group">
-        <label>Report Type</label>
-        <select class="form-control" id="rep-type" onchange="toggleReportFields()">
-          <option value="activity">Activity Report (Ongoing Branch/Task)</option>
-          <option value="release">Release Report (Integration or Tags)</option>
-        </select>
+      <!-- VIEW 5: RELEASE REPORTS -->
+      <div id="view-reports" class="view-panel">
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div>
+              <div class="card-title">Generated Release & Activity Reports</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">Self-contained, evidence-linked HTML reports preserved with historical snapshots</div>
+            </div>
+            <button class="btn-primary" onclick="openModal('reportModal')">+ Generate Report</button>
+          </div>
+          <table>
+            <thead><tr><th>Title</th><th>Type</th><th>Scope (Branch / SHA)</th><th>Created</th><th>Action</th></tr></thead>
+            <tbody id="reports-table-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="form-group" id="group-branch">
-        <label>Branch Context</label>
-        <input class="form-control" id="rep-branch" placeholder="e.g. main, feature/auth" />
+
+      <!-- VIEW 6: AI WORK LEDGER -->
+      <div id="view-ledger" class="view-panel">
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div>
+              <div class="card-title">AI Provider & Agent Attribution Ledger</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">Honest attribution across Claude, ChatGPT, Gemini, and Local agents without guesswork</div>
+            </div>
+            <button onclick="loadLedger()">Refresh Ledger</button>
+          </div>
+          <table>
+            <thead><tr><th>Task ID</th><th>Feature Title</th><th>AI Provider</th><th>Branch</th><th>Test Verification</th><th>Handoff Package</th></tr></thead>
+            <tbody id="ledger-table-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="form-group" id="group-from" style="display:none;">
-        <label>From Ref / Tag</label>
-        <input class="form-control" id="rep-from" placeholder="e.g. v1.0.0" />
+
+      <!-- VIEW 7: EVIDENCE -->
+      <div id="view-evidence" class="view-panel">
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div class="card-title">Test & Build Evidence Verification</div>
+            <button onclick="openModal('evidenceModal')">+ Attach Evidence</button>
+          </div>
+          <table>
+            <thead><tr><th>Type</th><th>Result</th><th>Command</th><th>Commit SHA</th><th>Duration</th><th>Recorded At</th></tr></thead>
+            <tbody id="evidence-table-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="form-group" id="group-to" style="display:none;">
-        <label>To Ref / Tag</label>
-        <input class="form-control" id="rep-to" placeholder="e.g. v1.1.0" />
+
+      <!-- VIEW 8: RAW EVENT LOG -->
+      <div id="view-activity" class="view-panel">
+        <div class="content-card">
+          <div class="card-title">Append-Only Event Store (.devtrail/state.db)</div>
+          <table>
+            <thead><tr><th>Time</th><th>Event Type</th><th>Source</th><th>Branch / SHA</th><th>Attribution</th><th>Payload</th></tr></thead>
+            <tbody id="raw-events-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Snapshot Reason (Optional)</label>
-        <input class="form-control" id="rep-reason" placeholder="e.g. baseline test milestone" />
+
+      <!-- VIEW 9: SETTINGS -->
+      <div id="view-settings" class="view-panel">
+        <div class="content-card">
+          <div class="card-title">Active Configuration (config.yaml)</div>
+          <pre id="config-pre" style="background:#090d16; padding:1.2rem; border-radius:8px; font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan);"></pre>
+        </div>
       </div>
-      <div class="modal-actions">
-        <button onclick="closeModal('reportModal')">Cancel</button>
-        <button class="btn-primary" onclick="submitGenerateReport()">Generate</button>
+
+      <!-- VIEW 10: DIAGNOSTICS (DOCTOR) -->
+      <div id="view-doctor" class="view-panel">
+        <div class="content-card">
+          <div class="card-header-flex">
+            <div class="card-title">System Doctor Diagnostics</div>
+            <button onclick="copyDiagnostics()">Copy Redacted Diagnostics</button>
+          </div>
+          <div id="doctor-results">Loading diagnostics...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONTEXT INSPECTOR DRAWER -->
+  <div class="drawer" id="task-drawer">
+    <div class="drawer-header">
+      <span class="badge badge-cyan" id="drawer-id">DT-0000</span>
+      <button onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <h2 id="drawer-title" style="font-size:1.15rem; font-weight:700; margin-bottom:0.75rem;">Title</h2>
+      <div style="margin-bottom:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <span class="badge badge-purple" id="drawer-provider">Claude</span>
+        <span class="badge badge-green" id="drawer-status">in_progress</span>
+      </div>
+
+      <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:0.35rem;">Objective</div>
+      <p id="drawer-obj" style="font-size:0.88rem; color:var(--text-main); margin-bottom:1rem;"></p>
+
+      <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:0.35rem;">Development Notes</div>
+      <pre id="drawer-notes" style="background:#090d16; padding:0.75rem; border-radius:6px; font-size:0.8rem; margin-bottom:1.25rem; white-space:pre-wrap;"></pre>
+
+      <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:0.35rem;">Linked Branches</div>
+      <div id="drawer-branches" style="font-family:var(--font-mono); font-size:0.82rem; margin-bottom:1.25rem;"></div>
+
+      <button class="btn-primary" style="width:100%; justify-content:center; padding:0.75rem;" onclick="copyHandoffPackage()">
+        📋 Export Prompt-Ready AI Handoff
+      </button>
+      <div style="font-size:0.75rem; color:var(--text-dim); text-align:center; margin-top:0.4rem;">
+        Paste into Claude, ChatGPT, or Gemini to resume work seamlessly.
       </div>
     </div>
   </div>
@@ -427,14 +729,24 @@
   <!-- MODAL: Create Task -->
   <div class="modal-overlay" id="taskModal">
     <div class="modal">
-      <h2>Create Feature / Task</h2>
+      <h2>Create New Task</h2>
       <div class="form-group">
-        <label>Task Title</label>
-        <input class="form-control" id="task-title" placeholder="e.g. Add biometric authentication" />
+        <label>Title</label>
+        <input class="form-control" id="task-in-title" placeholder="e.g. Implement audio background export" />
+      </div>
+      <div class="form-group">
+        <label>AI Provider / Agent</label>
+        <select class="form-control" id="task-in-provider">
+          <option value="claude">Claude (Anthropic)</option>
+          <option value="chatgpt">ChatGPT (OpenAI)</option>
+          <option value="gemini">Gemini (Google)</option>
+          <option value="local">Local Model</option>
+          <option value="human">Human Developer</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Type</label>
-        <select class="form-control" id="task-type">
+        <select class="form-control" id="task-in-type">
           <option value="feature">Feature</option>
           <option value="fix">Fix</option>
           <option value="refactor">Refactor</option>
@@ -442,15 +754,46 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Objective</label>
-        <textarea class="form-control" id="task-obj" rows="2" placeholder="Brief objective..."></textarea>
-      </div>
-      <div class="form-group">
-        <label><input type="checkbox" id="task-attach" checked /> Auto-attach to current branch</label>
+        <label>Objective & Context</label>
+        <textarea class="form-control" id="task-in-obj" rows="2" placeholder="Brief objective..."></textarea>
       </div>
       <div class="modal-actions">
         <button onclick="closeModal('taskModal')">Cancel</button>
-        <button class="btn-primary" onclick="submitCreateTask()">Create</button>
+        <button class="btn-primary" onclick="submitCreateTask()">Create Task</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Generate Report -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal">
+      <h2>Generate Report</h2>
+      <div class="form-group">
+        <label>Report Type</label>
+        <select class="form-control" id="rep-in-type" onchange="toggleRepFields()">
+          <option value="activity">Activity Report (Ongoing Branch)</option>
+          <option value="release">Release Report (Target Integration or Tag-to-Tag)</option>
+        </select>
+      </div>
+      <div class="form-group" id="group-rep-branch">
+        <label>Branch Context</label>
+        <input class="form-control" id="rep-in-branch" placeholder="e.g. main" />
+      </div>
+      <div class="form-group" id="group-rep-from" style="display:none;">
+        <label>From Ref / Tag</label>
+        <input class="form-control" id="rep-in-from" placeholder="e.g. v1.0.0" />
+      </div>
+      <div class="form-group" id="group-rep-to" style="display:none;">
+        <label>To Ref / Tag</label>
+        <input class="form-control" id="rep-in-to" placeholder="e.g. v1.1.0" />
+      </div>
+      <div class="form-group">
+        <label>Snapshot Milestone (Optional)</label>
+        <input class="form-control" id="rep-in-snapshot" placeholder="e.g. Milestone 1 Verified" />
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal('reportModal')">Cancel</button>
+        <button class="btn-primary" onclick="submitGenerateReport()">Generate Report</button>
       </div>
     </div>
   </div>
@@ -460,8 +803,8 @@
     <div class="modal">
       <h2>Record Checkpoint</h2>
       <div class="form-group">
-        <label>Checkpoint Note / Milestone</label>
-        <input class="form-control" id="cp-message" placeholder="e.g. Integration tests passing on iOS and Android" />
+        <label>Milestone Message</label>
+        <input class="form-control" id="cp-in-msg" placeholder="e.g. Audio export baseline tests passing" />
       </div>
       <div class="modal-actions">
         <button onclick="closeModal('checkpointModal')">Cancel</button>
@@ -475,82 +818,87 @@
     <div class="modal">
       <h2>Attach Test/Build Evidence</h2>
       <div class="form-group">
-        <label>Evidence Type</label>
-        <select class="form-control" id="ev-type">
+        <label>Type</label>
+        <select class="form-control" id="ev-in-type">
           <option value="test">Test Run</option>
-          <option value="build">Build Artifact</option>
-          <option value="ci">CI Verification</option>
-          <option value="benchmark">Benchmark</option>
+          <option value="build">Build Verification</option>
+          <option value="ci">CI Run</option>
         </select>
       </div>
       <div class="form-group">
         <label>Result</label>
-        <select class="form-control" id="ev-result">
+        <select class="form-control" id="ev-in-result">
           <option value="passed">Passed</option>
           <option value="failed">Failed</option>
-          <option value="error">Error</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Command</label>
-        <input class="form-control" id="ev-command" placeholder="e.g. flutter test or npm test" />
+        <label>Command Executed</label>
+        <input class="form-control" id="ev-in-cmd" placeholder="e.g. flutter test or go test ./..." />
       </div>
       <div class="form-group">
         <label>Duration (ms)</label>
-        <input class="form-control" type="number" id="ev-duration" value="1250" />
+        <input class="form-control" type="number" id="ev-in-dur" value="380" />
       </div>
       <div class="modal-actions">
         <button onclick="closeModal('evidenceModal')">Cancel</button>
-        <button class="btn-primary" onclick="submitEvidence()">Attach Evidence</button>
+        <button class="btn-primary" onclick="submitEvidence()">Record Evidence</button>
       </div>
     </div>
   </div>
 
   <script>
-    let currentStatus = null;
+    let activeTask = null;
+    let cachedTasks = [];
+    let laneColors = ['#38bdf8', '#a855f7', '#10b981', '#f59e0b', '#f43f5e', '#3b82f6'];
 
     function switchView(viewName) {
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
-      const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.innerText.toLowerCase().includes(viewName));
+      const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick')?.includes(viewName));
       if (activeNav) activeNav.classList.add('active');
-      const targetPanel = document.getElementById('view-' + viewName);
-      if (targetPanel) targetPanel.classList.add('active');
-      document.getElementById('header-title').innerText = viewName.toUpperCase();
+      const target = document.getElementById('view-' + viewName);
+      if (target) target.classList.add('active');
 
       if (viewName === 'overview') loadOverview();
-      else if (viewName === 'activity') loadActivity();
-      else if (viewName === 'branches') loadBranches();
-      else if (viewName === 'tasks') loadTasks();
+      else if (viewName === 'graph') loadGitGraph();
+      else if (viewName === 'timeline') loadTimeline();
+      else if (viewName === 'kanban') loadKanban();
       else if (viewName === 'reports') loadReports();
+      else if (viewName === 'ledger') loadLedger();
       else if (viewName === 'evidence') loadEvidence();
+      else if (viewName === 'activity') loadActivity();
       else if (viewName === 'settings') loadSettings();
-      else if (viewName === 'diagnostics') loadDoctor();
+      else if (viewName === 'doctor') loadDoctor();
     }
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function closeDrawer() { document.getElementById('task-drawer').classList.remove('active'); }
 
-    function toggleReportFields() {
-      const type = document.getElementById('rep-type').value;
-      const isRelease = type === 'release';
-      document.getElementById('group-from').style.display = isRelease ? 'block' : 'none';
-      document.getElementById('group-to').style.display = isRelease ? 'block' : 'none';
+    function toggleRepFields() {
+      const isRel = document.getElementById('rep-in-type').value === 'release';
+      document.getElementById('group-rep-from').style.display = isRel ? 'block' : 'none';
+      document.getElementById('group-rep-to').style.display = isRel ? 'block' : 'none';
     }
 
     async function loadOverview() {
       try {
         const res = await fetch('/api/status');
         const data = await res.json();
-        currentStatus = data;
-        document.getElementById('stat-branch').innerText = data.current_branch || '—';
-        document.getElementById('stat-head').innerText = 'HEAD: ' + (data.head_sha ? data.head_sha.slice(0, 8) : '—');
-        document.getElementById('stat-clean').innerText = data.working_tree_clean ? 'Clean' : 'Modified';
-        document.getElementById('stat-changes').innerText = `${data.staged_files} staged, ${data.modified_files} mod, ${data.untracked_files} untracked`;
-        document.getElementById('stat-tasks').innerText = data.total_tasks;
-        document.getElementById('stat-reports').innerText = data.total_reports;
+        document.getElementById('top-repo-name').innerText = data.name;
+        document.getElementById('top-branch-pill').innerText = data.current_branch;
+        document.getElementById('top-head-sha').innerText = 'HEAD: ' + (data.head_sha ? data.head_sha.slice(0, 8) : '—');
 
-        const table = document.getElementById('overview-activity-table');
+        document.getElementById('ov-branch').innerText = data.current_branch;
+        document.getElementById('ov-head').innerText = 'HEAD: ' + (data.head_sha ? data.head_sha.slice(0, 8) : '—');
+        document.getElementById('ov-clean').innerText = data.working_tree_clean ? 'Clean' : 'Modified';
+        document.getElementById('ov-clean').style.color = data.working_tree_clean ? 'var(--emerald)' : 'var(--amber)';
+        document.getElementById('ov-changes').innerText = `${data.staged_files} staged, ${data.modified_files} modified`;
+        document.getElementById('ov-tasks').innerText = data.total_tasks;
+        document.getElementById('ov-reports').innerText = data.total_reports;
+
+        const table = document.getElementById('overview-events-body');
         if (data.recent_events && data.recent_events.length > 0) {
           table.innerHTML = data.recent_events.map(e => `
             <tr>
@@ -559,121 +907,358 @@
               <td>${e.source}</td>
               <td><code>${e.branch || ''} ${e.commit_sha ? e.commit_sha.slice(0, 7) : ''}</code></td>
               <td><span class="badge badge-cyan">${e.attribution_level}</span></td>
+              <td><button onclick="switchView('kanban')">View Tasks</button></td>
             </tr>
           `).join('');
         } else {
-          table.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted); text-align:center;">No activity recorded yet.</td></tr>';
+          table.innerHTML = '<tr><td colspan="6" style="color:var(--text-muted); text-align:center;">No recent events recorded.</td></tr>';
         }
       } catch (err) {
         console.error(err);
       }
     }
 
-    async function loadActivity() {
-      const res = await fetch('/api/activity');
-      const data = await res.json();
-      const table = document.getElementById('full-activity-table');
-      table.innerHTML = (data || []).map(e => `
-        <tr>
-          <td>${new Date(e.occurred_at).toLocaleString()}</td>
-          <td><strong>${e.event_type}</strong></td>
-          <td>${e.source}</td>
-          <td><code>${e.branch || ''} ${e.commit_sha ? e.commit_sha.slice(0, 7) : ''}</code></td>
-          <td><span class="badge badge-cyan">${e.attribution_level}</span></td>
-          <td><pre style="font-size:0.75rem;">${e.payload_json}</pre></td>
-        </tr>
-      `).join('');
+    async function loadGitGraph() {
+      try {
+        const res = await fetch('/api/git/graph');
+        const nodes = await res.json();
+        const list = document.getElementById('graph-list');
+        if (!nodes || nodes.length === 0) {
+          list.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:2rem;">No commits found in graph.</div>';
+          return;
+        }
+
+        list.innerHTML = nodes.map((n, i) => {
+          const color = laneColors[n.lane % laneColors.length];
+          const dotLeft = (n.lane * 18) + 12;
+          const refPills = (n.refs || []).map(r => `<span class="badge ${r === 'main' ? 'badge-cyan' : 'badge-purple'}" style="margin-right:4px;">${r}</span>`).join('');
+          const headPill = n.is_head ? `<span class="badge badge-green" style="margin-right:4px;">HEAD</span>` : '';
+
+          return `
+            <div class="commit-row" onclick="selectCommitNode(${i})" id="commit-node-${i}">
+              <div class="rail-cell">
+                <div class="rail-dot" style="left:${dotLeft}px; background:${color}; box-shadow:0 0 8px ${color};"></div>
+              </div>
+              <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); width:65px;">${n.short_sha}</div>
+              <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${headPill}${refPills}<strong>${n.subject}</strong>
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-dim);">${n.author_name}</div>
+            </div>
+          `;
+        }).join('');
+
+        window.graphNodes = nodes;
+        selectCommitNode(0);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
-    async function loadBranches() {
-      const res = await fetch('/api/branches');
-      const data = await res.json();
-      document.getElementById('worktrees-table').innerHTML = (data.worktrees || []).map(w => `
-        <tr><td>${w.path}</td><td><strong>${w.branch}</strong></td><td><code>${(w.head_sha || '').slice(0, 8)}</code></td><td><span class="badge badge-green">${w.status}</span></td></tr>
-      `).join('');
-      document.getElementById('branches-table').innerHTML = (data.branches || []).map(b => `
-        <tr><td><strong>${b.ref_name}</strong></td><td><code>${b.target_sha.slice(0, 8)}</code></td><td>${b.upstream_ref || 'None'}</td><td>+${b.ahead_count} / -${b.behind_count}</td></tr>
-      `).join('');
+    function selectCommitNode(index) {
+      document.querySelectorAll('.commit-row').forEach(el => el.classList.remove('selected'));
+      const row = document.getElementById('commit-node-' + index);
+      if (row) row.classList.add('selected');
+
+      const node = window.graphNodes[index];
+      if (!node) return;
+
+      const inspector = document.getElementById('graph-inspector');
+      inspector.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <span class="badge badge-cyan">${node.short_sha}</span>
+          <span style="font-size:0.78rem; color:var(--text-muted);">${new Date(node.timestamp).toLocaleString()}</span>
+        </div>
+        <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:0.75rem;">${node.subject}</h3>
+        <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+          <strong>Author:</strong> ${node.author_name}
+        </div>
+        <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+          <strong>Commit SHA:</strong> <code>${node.sha}</code>
+        </div>
+        <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+          <strong>Parents:</strong> ${node.parent_shas ? node.parent_shas.map(p => `<code>${p.slice(0, 7)}</code>`).join(', ') : 'None (Root commit)'}
+        </div>
+        <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+          <strong>Refs Pointing Here:</strong> ${(node.refs || []).join(', ') || 'None'}
+        </div>
+        <button class="btn-primary" style="width:100%; margin-top:1rem;" onclick="switchView('reports')">Generate Scope Report</button>
+      `;
     }
 
-    async function loadTasks() {
-      const res = await fetch('/api/tasks');
-      const data = await res.json();
-      document.getElementById('tasks-table').innerHTML = (data || []).map(t => `
-        <tr>
-          <td><code>${t.id}</code></td>
-          <td><strong>${t.title}</strong><div style="font-size:0.8rem; color:var(--text-muted);">${t.objective || ''}</div></td>
-          <td><span class="badge badge-cyan">${t.task_type}</span></td>
-          <td><span class="badge badge-green">${t.status}</span></td>
-          <td>${(t.branches || []).join(', ') || 'None'}</td>
-          <td><button onclick="promptTaskNote('${t.id}')">Note</button></td>
-        </tr>
-      `).join('');
+    async function loadTimeline() {
+      try {
+        const res = await fetch('/api/timeline');
+        const data = await res.json();
+        document.getElementById('tl-parallel-tasks').innerText = data.parallel_tasks;
+        document.getElementById('tl-files-mod').innerText = data.files_modified;
+        document.getElementById('tl-lines-add').innerText = '+' + data.lines_added;
+        document.getElementById('tl-lines-del').innerText = '-' + data.lines_deleted;
+
+        // Render date headers
+        const datesRow = document.getElementById('gantt-dates-row');
+        const today = new Date();
+        const days = [];
+        for (let i = 4; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          days.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        }
+        datesRow.innerHTML = days.map(d => `<div class="gantt-date-col">${d}</div>`).join('');
+
+        // Render tracks
+        const tracksList = document.getElementById('gantt-tracks-list');
+        const tasks = data.tasks || [];
+        if (tasks.length === 0) {
+          tracksList.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:2rem;">No parallel tasks to display. Create a task to start tracking.</div>';
+          return;
+        }
+
+        tracksList.innerHTML = tasks.map((t, idx) => {
+          const isDone = t.status === 'merged' || t.status === 'released' || t.status === 'closed';
+          const leftPct = (idx * 15) % 40 + 10;
+          const widthPct = 35;
+          return `
+            <div class="gantt-track">
+              <div class="gantt-track-label">
+                <span style="color:var(--cyan); font-family:var(--font-mono); font-size:0.75rem;">${t.id}</span>
+                <span>${t.title}</span>
+              </div>
+              <div class="gantt-track-body">
+                <div class="gantt-bar ${isDone ? 'bar-completed' : 'bar-working'}" style="left:${leftPct}%; width:${widthPct}%;">
+                  ${t.ai_provider || 'claude'} &bull; ${t.status}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadKanban() {
+      try {
+        const res = await fetch('/api/tasks');
+        const tasks = await res.json();
+        cachedTasks = tasks || [];
+
+        const cols = ['planned', 'in_progress', 'ready_for_review', 'testing', 'merged'];
+        cols.forEach(c => {
+          document.getElementById('cards-' + c).innerHTML = '';
+          document.getElementById('count-' + c).innerText = '0';
+        });
+
+        const counts = { planned: 0, in_progress: 0, ready_for_review: 0, testing: 0, merged: 0 };
+
+        (tasks || []).forEach(t => {
+          let col = t.status;
+          if (!counts.hasOwnProperty(col)) {
+            if (col === 'released' || col === 'closed') col = 'merged';
+            else col = 'planned';
+          }
+          counts[col]++;
+
+          const card = document.createElement('div');
+          card.className = 'task-card';
+          card.onclick = () => openTaskDrawer(t.id);
+          card.innerHTML = `
+            <div class="task-card-header">
+              <span class="task-id">${t.id}</span>
+              <span class="badge ${t.ai_provider === 'claude' ? 'badge-purple' : 'badge-cyan'}">${t.ai_provider || 'claude'}</span>
+            </div>
+            <div class="task-title">${t.title}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${t.objective ? t.objective.slice(0, 60) + '...' : ''}</div>
+            <div class="task-meta-pills">
+              ${(t.branches || []).map(b => `<span class="badge badge-cyan" style="font-size:0.65rem;">${b}</span>`).join('')}
+              <span class="badge ${t.test_status === 'passed' ? 'badge-green' : 'badge-amber'}" style="font-size:0.65rem;">${t.test_status || 'unverified'}</span>
+            </div>
+          `;
+          document.getElementById('cards-' + col).appendChild(card);
+        });
+
+        cols.forEach(c => {
+          document.getElementById('count-' + c).innerText = counts[c];
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function openTaskDrawer(taskId) {
+      const task = cachedTasks.find(t => t.id === taskId);
+      if (!task) return;
+      activeTask = task;
+
+      document.getElementById('drawer-id').innerText = task.id;
+      document.getElementById('drawer-title').innerText = task.title;
+      document.getElementById('drawer-provider').innerText = task.ai_provider || 'Claude';
+      document.getElementById('drawer-status').innerText = task.status;
+      document.getElementById('drawer-obj').innerText = task.objective || 'No objective specified.';
+      document.getElementById('drawer-notes').innerText = task.notes || 'No development notes recorded.';
+      document.getElementById('drawer-branches').innerHTML = (task.branches || []).map(b => `<div>&bull; ${b}</div>`).join('') || 'None';
+
+      document.getElementById('task-drawer').classList.add('active');
+    }
+
+    async function copyHandoffPackage() {
+      if (!activeTask) return;
+      try {
+        const res = await fetch('/api/tasks/handoff?task_id=' + activeTask.id);
+        const data = await res.json();
+        navigator.clipboard.writeText(data.formatted_prompt);
+        alert(`✓ AI Handoff Package for ${activeTask.id} copied to clipboard!\n\nPaste directly into Claude Code, ChatGPT, or Gemini.`);
+      } catch (err) {
+        alert("Failed to export handoff: " + err);
+      }
     }
 
     async function loadReports() {
-      const res = await fetch('/api/reports');
-      const data = await res.json();
-      document.getElementById('reports-table').innerHTML = (data || []).map(r => `
-        <tr>
-          <td><strong>${r.title}</strong></td>
-          <td><span class="badge badge-cyan">${r.report_type}</span></td>
-          <td><span class="badge badge-green">${r.status}</span></td>
-          <td><code>${r.head_ref || ''} ${(r.head_sha || '').slice(0, 7)}</code></td>
-          <td>${new Date(r.created_at).toLocaleDateString()}</td>
-          <td><button onclick="openReport('${r.file_path}')">Open HTML</button></td>
-        </tr>
-      `).join('');
+      try {
+        const res = await fetch('/api/reports');
+        const list = await res.json();
+        document.getElementById('reports-table-body').innerHTML = (list || []).map(r => `
+          <tr>
+            <td><strong>${r.title}</strong></td>
+            <td><span class="badge badge-cyan">${r.report_type}</span></td>
+            <td><code>${r.head_ref || ''} ${(r.head_sha || '').slice(0, 8)}</code></td>
+            <td>${new Date(r.created_at).toLocaleString()}</td>
+            <td><button onclick="openReport('${r.file_path}')">Open HTML</button></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     function openReport(filePath) {
-      // Open in a new tab via our server endpoint
       const rel = filePath.split('/.devtrail/reports')[1];
       if (rel) window.open('/reports' + rel, '_blank');
       else alert("Report path: " + filePath);
     }
 
-    async function loadEvidence() {
-      const res = await fetch('/api/evidence');
+    async function loadLedger() {
+      try {
+        const res = await fetch('/api/tasks');
+        const tasks = await res.json();
+        document.getElementById('ledger-table-body').innerHTML = (tasks || []).map(t => `
+          <tr>
+            <td><code>${t.id}</code></td>
+            <td><strong>${t.title}</strong></td>
+            <td><span class="badge ${t.ai_provider === 'claude' ? 'badge-purple' : 'badge-cyan'}">${t.ai_provider || 'claude'}</span></td>
+            <td><code>${(t.branches || []).join(', ') || 'main'}</code></td>
+            <td><span class="badge ${t.test_status === 'passed' ? 'badge-green' : 'badge-amber'}">${t.test_status || 'unverified'}</span></td>
+            <td><button onclick="exportHandoffById('${t.id}')">Export Handoff</button></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function exportHandoffById(taskId) {
+      const res = await fetch('/api/tasks/handoff?task_id=' + taskId);
       const data = await res.json();
-      document.getElementById('evidence-table').innerHTML = (data || []).map(e => `
-        <tr>
-          <td><strong>${e.evidence_type}</strong></td>
-          <td><span class="badge ${e.result === 'passed' ? 'badge-green' : 'badge-rose'}">${e.result}</span></td>
-          <td><code>${e.command || 'Manual'}</code></td>
-          <td><code>${(e.commit_sha || '').slice(0, 8)}</code></td>
-          <td>${e.duration_ms}ms</td>
-          <td>${new Date(e.created_at).toLocaleTimeString()}</td>
-        </tr>
-      `).join('');
+      navigator.clipboard.writeText(data.formatted_prompt);
+      alert(`✓ AI Handoff prompt for ${taskId} copied to clipboard!`);
+    }
+
+    async function loadEvidence() {
+      try {
+        const res = await fetch('/api/evidence');
+        const list = await res.json();
+        document.getElementById('evidence-table-body').innerHTML = (list || []).map(e => `
+          <tr>
+            <td><strong>${e.evidence_type}</strong></td>
+            <td><span class="badge ${e.result === 'passed' ? 'badge-green' : 'badge-rose'}">${e.result}</span></td>
+            <td><code>${e.command || 'Manual'}</code></td>
+            <td><code>${(e.commit_sha || '').slice(0, 8)}</code></td>
+            <td>${e.duration_ms}ms</td>
+            <td>${new Date(e.created_at).toLocaleTimeString()}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadActivity() {
+      try {
+        const res = await fetch('/api/activity');
+        const evts = await res.json();
+        document.getElementById('raw-events-body').innerHTML = (evts || []).map(e => `
+          <tr>
+            <td>${new Date(e.occurred_at).toLocaleTimeString()}</td>
+            <td><strong>${e.event_type}</strong></td>
+            <td>${e.source}</td>
+            <td><code>${e.branch || ''} ${e.commit_sha ? e.commit_sha.slice(0, 7) : ''}</code></td>
+            <td><span class="badge badge-cyan">${e.attribution_level}</span></td>
+            <td><pre style="font-size:0.75rem;">${e.payload_json}</pre></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     async function loadSettings() {
-      const res = await fetch('/api/config');
-      const data = await res.json();
-      document.getElementById('config-yaml').innerText = JSON.stringify(data, null, 2);
+      try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        document.getElementById('config-pre').innerText = JSON.stringify(cfg, null, 2);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     async function loadDoctor() {
+      try {
+        const res = await fetch('/api/doctor');
+        const data = await res.json();
+        document.getElementById('doctor-results').innerHTML = `
+          <div style="margin-bottom:1.25rem;">
+            Overall Health: <span class="badge ${data.overall_status === 'HEALTHY' ? 'badge-green' : 'badge-amber'}">${data.overall_status}</span>
+          </div>
+          ${data.items.map(i => `
+            <div style="display:flex; justify-content:space-between; padding:0.65rem 0; border-bottom:1px solid var(--border-subtle);">
+              <div><strong>${i.name}</strong>: ${i.message} ${i.detail ? '<div style="color:var(--text-muted); font-size:0.78rem;">' + i.detail + '</div>' : ''}</div>
+              <span class="badge ${i.status === 'OK' ? 'badge-green' : (i.status === 'WARN' ? 'badge-amber' : 'badge-rose')}">${i.status}</span>
+            </div>
+          `).join('')}
+        `;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function copyDiagnostics() {
       const res = await fetch('/api/doctor');
       const data = await res.json();
-      document.getElementById('doctor-list').innerHTML = `
-        <div style="margin-bottom:1rem; font-weight:700;">Status: <span class="badge ${data.overall_status === 'HEALTHY' ? 'badge-green' : 'badge-amber'}">${data.overall_status}</span></div>
-        ${data.items.map(i => `
-          <div style="display:flex; justify-content:space-between; padding:0.6rem 0; border-bottom:1px solid var(--border-subtle);">
-            <div><strong>${i.name}</strong>: ${i.message} ${i.detail ? '<div style="color:var(--text-muted); font-size:0.8rem;">' + i.detail + '</div>' : ''}</div>
-            <span class="badge ${i.status === 'OK' ? 'badge-green' : (i.status === 'WARN' ? 'badge-amber' : 'badge-rose')}">${i.status}</span>
-          </div>
-        `).join('')}
-      `;
+      navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      alert("Diagnostics copied to clipboard!");
+    }
+
+    async function submitCreateTask() {
+      const title = document.getElementById('task-in-title').value;
+      const ai_provider = document.getElementById('task-in-provider').value;
+      const task_type = document.getElementById('task-in-type').value;
+      const objective = document.getElementById('task-in-obj').value;
+
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, ai_provider, task_type, objective, attach_branch: true })
+      });
+      closeModal('taskModal');
+      switchView('kanban');
     }
 
     async function submitGenerateReport() {
-      const type = document.getElementById('rep-type').value;
-      const branch = document.getElementById('rep-branch').value;
-      const fromRef = document.getElementById('rep-from').value;
-      const toRef = document.getElementById('rep-to').value;
-      const reason = document.getElementById('rep-reason').value;
+      const type = document.getElementById('rep-in-type').value;
+      const branch = document.getElementById('rep-in-branch').value;
+      const fromRef = document.getElementById('rep-in-from').value;
+      const toRef = document.getElementById('rep-in-to').value;
+      const reason = document.getElementById('rep-in-snapshot').value;
 
       const res = await fetch('/api/reports/generate', {
         method: 'POST',
@@ -682,29 +1267,12 @@
       });
       const data = await res.json();
       closeModal('reportModal');
-      if (data.web_url) {
-        window.open(data.web_url, '_blank');
-      }
+      if (data.web_url) window.open(data.web_url, '_blank');
       switchView('reports');
     }
 
-    async function submitCreateTask() {
-      const title = document.getElementById('task-title').value;
-      const task_type = document.getElementById('task-type').value;
-      const objective = document.getElementById('task-obj').value;
-      const attach_branch = document.getElementById('task-attach').checked;
-
-      await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, task_type, objective, attach_branch })
-      });
-      closeModal('taskModal');
-      switchView('tasks');
-    }
-
     async function submitCheckpoint() {
-      const message = document.getElementById('cp-message').value;
+      const message = document.getElementById('cp-in-msg').value;
       await fetch('/api/checkpoints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -715,10 +1283,10 @@
     }
 
     async function submitEvidence() {
-      const type = document.getElementById('ev-type').value;
-      const result = document.getElementById('ev-result').value;
-      const command = document.getElementById('ev-command').value;
-      const duration_ms = parseInt(document.getElementById('ev-duration').value || '0', 10);
+      const type = document.getElementById('ev-in-type').value;
+      const result = document.getElementById('ev-in-result').value;
+      const command = document.getElementById('ev-in-cmd').value;
+      const duration_ms = parseInt(document.getElementById('ev-in-dur').value || '0', 10);
 
       await fetch('/api/evidence', {
         method: 'POST',
@@ -727,25 +1295,6 @@
       });
       closeModal('evidenceModal');
       switchView('evidence');
-    }
-
-    async function promptTaskNote(taskID) {
-      const note = prompt("Enter note for task " + taskID + ":");
-      if (note) {
-        await fetch('/api/tasks/note', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ task_id: taskID, note })
-        });
-        loadTasks();
-      }
-    }
-
-    async function copyDiagnostics() {
-      const res = await fetch('/api/doctor');
-      const data = await res.json();
-      navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-      alert("Diagnostics copied to clipboard!");
     }
 
     // Initial load
