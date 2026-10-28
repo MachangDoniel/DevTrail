@@ -9,3 +9,4 @@ devtrail
 .devtrail/logs/
 .devtrail/secrets/
 
+tests/.devtrail/
