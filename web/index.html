@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevTrail — Developer Activity Intelligence Dashboard</title>
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: #111827;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-card-hover: rgba(31, 41, 55, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.3);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --cyan: #38bdf8;
+      --blue: #3b82f6;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Sidebar Navigation */
+    aside {
+      width: 250px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .brand {
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #000;
+      font-size: 1rem;
+    }
+    .brand-text { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
+    .nav-list { list-style: none; padding: 1rem 0.5rem; flex: 1; overflow-y: auto; }
+    .nav-item {
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.25rem;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover { color: var(--text-main); background: var(--bg-card-hover); }
+    .nav-item.active {
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      font-weight: 600;
+    }
+
+    /* Main Content Area */
+    main {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .title-group h1 { font-size: 1.6rem; font-weight: 700; }
+    .title-group p { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .btn-group { display: flex; gap: 0.5rem; }
+    button {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    button:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+    button.btn-primary {
+      background: var(--cyan);
+      color: #000;
+      border: none;
+    }
+    button.btn-primary:hover { opacity: 0.9; }
+
+    /* Cards & Stats */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1.25rem;
+      backdrop-filter: blur(8px);
+    }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .stat-val { font-size: 1.5rem; font-weight: 700; margin-top: 0.4rem; font-family: var(--font-mono); }
+    .stat-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+    .content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
+    th { color: var(--text-muted); padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.75rem; text-transform: uppercase; }
+    td { padding: 0.85rem 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* Badges */
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+    .badge-cyan { background: rgba(56, 189, 248, 0.15); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-rose { background: rgba(244, 63, 94, 0.15); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-accent);
+      border-radius: 12px; width: 500px; max-width: 90%; padding: 1.75rem;
+    }
+    .modal h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem; }
+    .form-control {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle);
+      border-radius: 6px; padding: 0.55rem 0.75rem; color: var(--text-main); font-size: 0.88rem;
+    }
+    .form-control:focus { outline: none; border-color: var(--cyan); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem; }
+
+    /* Tab views */
+    .view-panel { display: none; }
+    .view-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Sidebar -->
+  <aside>
+    <div class="brand">
+      <div class="brand-logo">DT</div>
+      <div class="brand-text">DevTrail</div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" onclick="switchView('overview')">1. Overview</li>
+      <li class="nav-item" onclick="switchView('activity')">2. Activity Timeline</li>
+      <li class="nav-item" onclick="switchView('branches')">3. Branches & Worktrees</li>
+      <li class="nav-item" onclick="switchView('tasks')">4. Features & Tasks</li>
+      <li class="nav-item" onclick="switchView('reports')">5. Reports Archive</li>
+      <li class="nav-item" onclick="switchView('schedules')">6. Schedules</li>
+      <li class="nav-item" onclick="switchView('triggers')">7. Triggers & Hooks</li>
+      <li class="nav-item" onclick="switchView('evidence')">8. Test Evidence</li>
+      <li class="nav-item" onclick="switchView('settings')">9. Settings & Privacy</li>
+      <li class="nav-item" onclick="switchView('diagnostics')">10. Diagnostics (Doctor)</li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    <header>
+      <div class="title-group">
+        <h1 id="header-title">Overview</h1>
+        <p id="header-sub">Repository intelligence and status</p>
+      </div>
+      <div class="btn-group">
+        <button class="btn-primary" onclick="openModal('reportModal')">+ Generate Report</button>
+        <button onclick="openModal('taskModal')">+ New Task</button>
+        <button onclick="openModal('checkpointModal')">Checkpoint</button>
+      </div>
+    </header>
+
+    <!-- VIEW 1: OVERVIEW -->
+    <div id="view-overview" class="view-panel active">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Active Branch</div>
+          <div class="stat-val" id="stat-branch">—</div>
+          <div class="stat-desc" id="stat-head">HEAD: —</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Working Tree</div>
+          <div class="stat-val" id="stat-clean">Clean</div>
+          <div class="stat-desc" id="stat-changes">0 changes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tasks / Features</div>
+          <div class="stat-val" id="stat-tasks">0</div>
+          <div class="stat-desc">Tracked work items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Generated Reports</div>
+          <div class="stat-val" id="stat-reports">0</div>
+          <div class="stat-desc">Saved HTML archives</div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-title">Recent Intelligence Activity</div>
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Event</th><th>Source</th><th>Branch / SHA</th><th>Attribution</th></tr>
+          </thead>
+          <tbody id="overview-activity-table">
+            <tr><td colspan="5" style="color:var(--text-muted); text-align:center;">Loading activity...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 2: ACTIVITY -->
+    <div id="view-activity" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">Immutable Event Log</div>
+        <table>
+          <thead>
+            <tr><th>Observed At</th><th>Type</th><th>Source</th><th>Branch / Commit</th><th>Attribution</th><th>Details</th></tr>
+          </thead>
+          <tbody id="full-activity-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 3: BRANCHES & WORKTREES -->
+    <div id="view-branches" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">Active Git Worktrees</div>
+        <table>
+          <thead><tr><th>Path</th><th>Branch</th><th>HEAD SHA</th><th>Status</th></tr></thead>
+          <tbody id="worktrees-table"></tbody>
+        </table>
+      </div>
+      <div class="content-card">
+        <div class="card-title">Local Branches & Tracking</div>
+        <table>
+          <thead><tr><th>Branch</th><th>Target SHA</th><th>Upstream</th><th>Ahead / Behind</th></tr></thead>
+          <tbody id="branches-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 4: TASKS -->
+    <div id="view-tasks" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">
+          <span>Features & Work Items</span>
+          <button class="btn-primary" onclick="openModal('taskModal')">+ Create Task</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>Status</th><th>Linked Branches</th><th>Action</th></tr></thead>
+          <tbody id="tasks-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 5: REPORTS -->
+    <div id="view-reports" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">
+          <span>Report Archive</span>
+          <button class="btn-primary" onclick="openModal('reportModal')">+ Generate Report</button>
+        </div>
+        <table>
+          <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Scope</th><th>Created</th><th>Action</th></tr></thead>
+          <tbody id="reports-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 6: SCHEDULES -->
+    <div id="view-schedules" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">Automated Schedules</div>
+        <table>
+          <thead><tr><th>Name</th><th>Frequency</th><th>Report Type</th><th>Window</th><th>Catch-Up Policy</th><th>Status</th></tr></thead>
+          <tbody id="schedules-table">
+            <tr><td>daily-activity</td><td>Daily @ 18:00</td><td>Activity</td><td>previous_calendar_day</td><td>run_once</td><td><span class="badge badge-green">Enabled</span></td></tr>
+            <tr><td>weekly-summary</td><td>Weekly on Friday @ 17:00</td><td>Activity</td><td>previous_calendar_week</td><td>run_once</td><td><span class="badge badge-green">Enabled</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 7: TRIGGERS & HOOKS -->
+    <div id="view-triggers" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">Git Event Triggers</div>
+        <table>
+          <thead><tr><th>Trigger Name</th><th>Event Pattern</th><th>Output Report</th><th>Debounce</th><th>Status</th></tr></thead>
+          <tbody id="triggers-table">
+            <tr><td>main-merges</td><td>merge:main</td><td>Release Integration</td><td>30s</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td>release-tags</td><td>tag:v*</td><td>Versioned Release</td><td>Immediate</td><td><span class="badge badge-green">Active</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 8: EVIDENCE -->
+    <div id="view-evidence" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">
+          <span>Test & Build Verification</span>
+          <button onclick="openModal('evidenceModal')">+ Attach Evidence</button>
+        </div>
+        <table>
+          <thead><tr><th>Type</th><th>Result</th><th>Command</th><th>Commit SHA</th><th>Duration</th><th>Recorded</th></tr></thead>
+          <tbody id="evidence-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 9: SETTINGS & PRIVACY -->
+    <div id="view-settings" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">Project & Storage Configuration</div>
+        <pre id="config-yaml" style="background:var(--bg-base); padding:1rem; border-radius:8px; font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan);"></pre>
+      </div>
+    </div>
+
+    <!-- VIEW 10: DIAGNOSTICS -->
+    <div id="view-diagnostics" class="view-panel">
+      <div class="content-card">
+        <div class="card-title">
+          <span>System Doctor</span>
+          <button onclick="copyDiagnostics()">Copy Redacted Diagnostics</button>
+        </div>
+        <div id="doctor-list" style="margin-top: 1rem;">Loading health checks...</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: Generate Report -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal">
+      <h2>Generate Report</h2>
+      <div class="form-group">
+        <label>Report Type</label>
+        <select class="form-control" id="rep-type" onchange="toggleReportFields()">
+          <option value="activity">Activity Report (Ongoing Branch/Task)</option>
+          <option value="release">Release Report (Integration or Tags)</option>
+        </select>
+      </div>
+      <div class="form-group" id="group-branch">
+        <label>Branch Context</label>
+        <input class="form-control" id="rep-branch" placeholder="e.g. main, feature/auth" />
+      </div>
+      <div class="form-group" id="group-from" style="display:none;">
+        <label>From Ref / Tag</label>
+        <input class="form-control" id="rep-from" placeholder="e.g. v1.0.0" />
+      </div>
+      <div class="form-group" id="group-to" style="display:none;">
+        <label>To Ref / Tag</label>
+        <input class="form-control" id="rep-to" placeholder="e.g. v1.1.0" />
+      </div>
+      <div class="form-group">
+        <label>Snapshot Reason (Optional)</label>
+        <input class="form-control" id="rep-reason" placeholder="e.g. baseline test milestone" />
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal('reportModal')">Cancel</button>
+        <button class="btn-primary" onclick="submitGenerateReport()">Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Create Task -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal">
+      <h2>Create Feature / Task</h2>
+      <div class="form-group">
+        <label>Task Title</label>
+        <input class="form-control" id="task-title" placeholder="e.g. Add biometric authentication" />
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select class="form-control" id="task-type">
+          <option value="feature">Feature</option>
+          <option value="fix">Fix</option>
+          <option value="refactor">Refactor</option>
+          <option value="chore">Chore</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Objective</label>
+        <textarea class="form-control" id="task-obj" rows="2" placeholder="Brief objective..."></textarea>
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" id="task-attach" checked /> Auto-attach to current branch</label>
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal('taskModal')">Cancel</button>
+        <button class="btn-primary" onclick="submitCreateTask()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Checkpoint -->
+  <div class="modal-overlay" id="checkpointModal">
+    <div class="modal">
+      <h2>Record Checkpoint</h2>
+      <div class="form-group">
+        <label>Checkpoint Note / Milestone</label>
+        <input class="form-control" id="cp-message" placeholder="e.g. Integration tests passing on iOS and Android" />
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal('checkpointModal')">Cancel</button>
+        <button class="btn-primary" onclick="submitCheckpoint()">Save Checkpoint</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Attach Evidence -->
+  <div class="modal-overlay" id="evidenceModal">
+    <div class="modal">
+      <h2>Attach Test/Build Evidence</h2>
+      <div class="form-group">
+        <label>Evidence Type</label>
+        <select class="form-control" id="ev-type">
+          <option value="test">Test Run</option>
+          <option value="build">Build Artifact</option>
+          <option value="ci">CI Verification</option>
+          <option value="benchmark">Benchmark</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Result</label>
+        <select class="form-control" id="ev-result">
+          <option value="passed">Passed</option>
+          <option value="failed">Failed</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Command</label>
+        <input class="form-control" id="ev-command" placeholder="e.g. flutter test or npm test" />
+      </div>
+      <div class="form-group">
+        <label>Duration (ms)</label>
+        <input class="form-control" type="number" id="ev-duration" value="1250" />
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal('evidenceModal')">Cancel</button>
+        <button class="btn-primary" onclick="submitEvidence()">Attach Evidence</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStatus = null;
+
+    function switchView(viewName) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
+      const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.innerText.toLowerCase().includes(viewName));
+      if (activeNav) activeNav.classList.add('active');
+      const targetPanel = document.getElementById('view-' + viewName);
+      if (targetPanel) targetPanel.classList.add('active');
+      document.getElementById('header-title').innerText = viewName.toUpperCase();
+
+      if (viewName === 'overview') loadOverview();
+      else if (viewName === 'activity') loadActivity();
+      else if (viewName === 'branches') loadBranches();
+      else if (viewName === 'tasks') loadTasks();
+      else if (viewName === 'reports') loadReports();
+      else if (viewName === 'evidence') loadEvidence();
+      else if (viewName === 'settings') loadSettings();
+      else if (viewName === 'diagnostics') loadDoctor();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function toggleReportFields() {
+      const type = document.getElementById('rep-type').value;
+      const isRelease = type === 'release';
+      document.getElementById('group-from').style.display = isRelease ? 'block' : 'none';
+      document.getElementById('group-to').style.display = isRelease ? 'block' : 'none';
+    }
+
+    async function loadOverview() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        currentStatus = data;
+        document.getElementById('stat-branch').innerText = data.current_branch || '—';
+        document.getElementById('stat-head').innerText = 'HEAD: ' + (data.head_sha ? data.head_sha.slice(0, 8) : '—');
+        document.getElementById('stat-clean').innerText = data.working_tree_clean ? 'Clean' : 'Modified';
+        document.getElementById('stat-changes').innerText = `${data.staged_files} staged, ${data.modified_files} mod, ${data.untracked_files} untracked`;
+        document.getElementById('stat-tasks').innerText = data.total_tasks;
+        document.getElementById('stat-reports').innerText = data.total_reports;
+
+        const table = document.getElementById('overview-activity-table');
+        if (data.recent_events && data.recent_events.length > 0) {
+          table.innerHTML = data.recent_events.map(e => `
+            <tr>
+              <td>${new Date(e.occurred_at).toLocaleTimeString()}</td>
+              <td><strong>${e.event_type}</strong></td>
+              <td>${e.source}</td>
+              <td><code>${e.branch || ''} ${e.commit_sha ? e.commit_sha.slice(0, 7) : ''}</code></td>
+              <td><span class="badge badge-cyan">${e.attribution_level}</span></td>
+            </tr>
+          `).join('');
+        } else {
+          table.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted); text-align:center;">No activity recorded yet.</td></tr>';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadActivity() {
+      const res = await fetch('/api/activity');
+      const data = await res.json();
+      const table = document.getElementById('full-activity-table');
+      table.innerHTML = (data || []).map(e => `
+        <tr>
+          <td>${new Date(e.occurred_at).toLocaleString()}</td>
+          <td><strong>${e.event_type}</strong></td>
+          <td>${e.source}</td>
+          <td><code>${e.branch || ''} ${e.commit_sha ? e.commit_sha.slice(0, 7) : ''}</code></td>
+          <td><span class="badge badge-cyan">${e.attribution_level}</span></td>
+          <td><pre style="font-size:0.75rem;">${e.payload_json}</pre></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadBranches() {
+      const res = await fetch('/api/branches');
+      const data = await res.json();
+      document.getElementById('worktrees-table').innerHTML = (data.worktrees || []).map(w => `
+        <tr><td>${w.path}</td><td><strong>${w.branch}</strong></td><td><code>${(w.head_sha || '').slice(0, 8)}</code></td><td><span class="badge badge-green">${w.status}</span></td></tr>
+      `).join('');
+      document.getElementById('branches-table').innerHTML = (data.branches || []).map(b => `
+        <tr><td><strong>${b.ref_name}</strong></td><td><code>${b.target_sha.slice(0, 8)}</code></td><td>${b.upstream_ref || 'None'}</td><td>+${b.ahead_count} / -${b.behind_count}</td></tr>
+      `).join('');
+    }
+
+    async function loadTasks() {
+      const res = await fetch('/api/tasks');
+      const data = await res.json();
+      document.getElementById('tasks-table').innerHTML = (data || []).map(t => `
+        <tr>
+          <td><code>${t.id}</code></td>
+          <td><strong>${t.title}</strong><div style="font-size:0.8rem; color:var(--text-muted);">${t.objective || ''}</div></td>
+          <td><span class="badge badge-cyan">${t.task_type}</span></td>
+          <td><span class="badge badge-green">${t.status}</span></td>
+          <td>${(t.branches || []).join(', ') || 'None'}</td>
+          <td><button onclick="promptTaskNote('${t.id}')">Note</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadReports() {
+      const res = await fetch('/api/reports');
+      const data = await res.json();
+      document.getElementById('reports-table').innerHTML = (data || []).map(r => `
+        <tr>
+          <td><strong>${r.title}</strong></td>
+          <td><span class="badge badge-cyan">${r.report_type}</span></td>
+          <td><span class="badge badge-green">${r.status}</span></td>
+          <td><code>${r.head_ref || ''} ${(r.head_sha || '').slice(0, 7)}</code></td>
+          <td>${new Date(r.created_at).toLocaleDateString()}</td>
+          <td><button onclick="openReport('${r.file_path}')">Open HTML</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function openReport(filePath) {
+      // Open in a new tab via our server endpoint
+      const rel = filePath.split('/.devtrail/reports')[1];
+      if (rel) window.open('/reports' + rel, '_blank');
+      else alert("Report path: " + filePath);
+    }
+
+    async function loadEvidence() {
+      const res = await fetch('/api/evidence');
+      const data = await res.json();
+      document.getElementById('evidence-table').innerHTML = (data || []).map(e => `
+        <tr>
+          <td><strong>${e.evidence_type}</strong></td>
+          <td><span class="badge ${e.result === 'passed' ? 'badge-green' : 'badge-rose'}">${e.result}</span></td>
+          <td><code>${e.command || 'Manual'}</code></td>
+          <td><code>${(e.commit_sha || '').slice(0, 8)}</code></td>
+          <td>${e.duration_ms}ms</td>
+          <td>${new Date(e.created_at).toLocaleTimeString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadSettings() {
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      document.getElementById('config-yaml').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function loadDoctor() {
+      const res = await fetch('/api/doctor');
+      const data = await res.json();
+      document.getElementById('doctor-list').innerHTML = `
+        <div style="margin-bottom:1rem; font-weight:700;">Status: <span class="badge ${data.overall_status === 'HEALTHY' ? 'badge-green' : 'badge-amber'}">${data.overall_status}</span></div>
+        ${data.items.map(i => `
+          <div style="display:flex; justify-content:space-between; padding:0.6rem 0; border-bottom:1px solid var(--border-subtle);">
+            <div><strong>${i.name}</strong>: ${i.message} ${i.detail ? '<div style="color:var(--text-muted); font-size:0.8rem;">' + i.detail + '</div>' : ''}</div>
+            <span class="badge ${i.status === 'OK' ? 'badge-green' : (i.status === 'WARN' ? 'badge-amber' : 'badge-rose')}">${i.status}</span>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    async function submitGenerateReport() {
+      const type = document.getElementById('rep-type').value;
+      const branch = document.getElementById('rep-branch').value;
+      const fromRef = document.getElementById('rep-from').value;
+      const toRef = document.getElementById('rep-to').value;
+      const reason = document.getElementById('rep-reason').value;
+
+      const res = await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, branch, from_ref: fromRef, to_ref: toRef, snapshot_reason: reason })
+      });
+      const data = await res.json();
+      closeModal('reportModal');
+      if (data.web_url) {
+        window.open(data.web_url, '_blank');
+      }
+      switchView('reports');
+    }
+
+    async function submitCreateTask() {
+      const title = document.getElementById('task-title').value;
+      const task_type = document.getElementById('task-type').value;
+      const objective = document.getElementById('task-obj').value;
+      const attach_branch = document.getElementById('task-attach').checked;
+
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, task_type, objective, attach_branch })
+      });
+      closeModal('taskModal');
+      switchView('tasks');
+    }
+
+    async function submitCheckpoint() {
+      const message = document.getElementById('cp-message').value;
+      await fetch('/api/checkpoints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      closeModal('checkpointModal');
+      loadOverview();
+    }
+
+    async function submitEvidence() {
+      const type = document.getElementById('ev-type').value;
+      const result = document.getElementById('ev-result').value;
+      const command = document.getElementById('ev-command').value;
+      const duration_ms = parseInt(document.getElementById('ev-duration').value || '0', 10);
+
+      await fetch('/api/evidence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ evidence_type: type, result, command, duration_ms })
+      });
+      closeModal('evidenceModal');
+      switchView('evidence');
+    }
+
+    async function promptTaskNote(taskID) {
+      const note = prompt("Enter note for task " + taskID + ":");
+      if (note) {
+        await fetch('/api/tasks/note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task_id: taskID, note })
+        });
+        loadTasks();
+      }
+    }
+
+    async function copyDiagnostics() {
+      const res = await fetch('/api/doctor');
+      const data = await res.json();
+      navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      alert("Diagnostics copied to clipboard!");
+    }
+
+    // Initial load
+    loadOverview();
+  </script>
+</body>
+</html>

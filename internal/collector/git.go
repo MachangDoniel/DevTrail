@@ -1,0 +1,357 @@
+package collector
+
+import (
+	"bytes"
+	"fmt"
+	"os/exec"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/donieltripura/devtrail/internal/core"
+)
+
+type GitCollector struct {
+	RepoDir string
+}
+
+func NewGitCollector(repoDir string) *GitCollector {
+	return &GitCollector{RepoDir: repoDir}
+}
+
+// run runs a read-only git command and returns standard output.
+func (g *GitCollector) run(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = g.RepoDir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("git %s failed: %w (stderr: %s)", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+	}
+	return strings.TrimSpace(stdout.String()), nil
+}
+
+// IsGitRepo verifies that the directory is inside a Git repository.
+func (g *GitCollector) IsGitRepo() (bool, string) {
+	out, err := g.run("rev-parse", "--show-toplevel")
+	if err != nil {
+		return false, ""
+	}
+	return true, out
+}
+
+// CurrentBranch returns the name of the currently checked out branch or detached ref.
+func (g *GitCollector) CurrentBranch() (string, error) {
+	out, err := g.run("rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	return out, nil
+}
+
+// CurrentHeadSHA returns the full SHA of HEAD.
+func (g *GitCollector) CurrentHeadSHA() (string, error) {
+	out, err := g.run("rev-parse", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	return out, nil
+}
+
+// MergeBase finds the best common ancestor commit between two refs.
+func (g *GitCollector) MergeBase(baseRef, headRef string) (string, error) {
+	out, err := g.run("merge-base", baseRef, headRef)
+	if err != nil {
+		return "", err
+	}
+	return out, nil
+}
+
+// WorkingTreeSummary returns counts of staged, modified, and untracked files.
+func (g *GitCollector) WorkingTreeSummary() (staged int, modified int, untracked int, clean bool, err error) {
+	out, err := g.run("status", "--porcelain")
+	if err != nil {
+		return 0, 0, 0, false, err
+	}
+	if out == "" {
+		return 0, 0, 0, true, nil
+	}
+
+	lines := strings.Split(out, "\n")
+	for _, l := range lines {
+		if len(l) < 2 {
+			continue
+		}
+		x := l[0]
+		y := l[1]
+		if x == '?' && y == '?' {
+			untracked++
+		} else {
+			if x != ' ' && x != '?' {
+				staged++
+			}
+			if y != ' ' && y != '?' {
+				modified++
+			}
+		}
+	}
+	return staged, modified, untracked, false, nil
+}
+
+// ListWorktrees discovers all active Git worktrees using --porcelain.
+func (g *GitCollector) ListWorktrees() ([]core.Worktree, error) {
+	out, err := g.run("worktree", "list", "--porcelain")
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+
+	var worktrees []core.Worktree
+	var current core.Worktree
+	lines := strings.Split(out, "\n")
+	now := time.Now().UTC()
+
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			if current.Path != "" {
+				current.LastObservedAt = now
+				current.Status = "active"
+				worktrees = append(worktrees, current)
+				current = core.Worktree{}
+			}
+			continue
+		}
+		parts := strings.SplitN(l, " ", 2)
+		key := parts[0]
+		val := ""
+		if len(parts) > 1 {
+			val = parts[1]
+		}
+
+		switch key {
+		case "worktree":
+			current.Path = val
+		case "HEAD":
+			current.HeadSHA = val
+		case "branch":
+			current.Branch = strings.TrimPrefix(val, "refs/heads/")
+		case "bare":
+			current.IsBare = true
+		case "locked":
+			current.IsLocked = true
+		}
+	}
+	if current.Path != "" {
+		current.LastObservedAt = now
+		current.Status = "active"
+		worktrees = append(worktrees, current)
+	}
+
+	return worktrees, nil
+}
+
+// ListBranches returns all local branches.
+func (g *GitCollector) ListBranches() ([]core.GitRef, error) {
+	format := "%(refname:short)|%(objectname)|%(upstream:short)"
+	out, err := g.run("for-each-ref", "--format="+format, "refs/heads/")
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+
+	var refs []core.GitRef
+	now := time.Now().UTC()
+	lines := strings.Split(out, "\n")
+	for _, l := range lines {
+		parts := strings.Split(l, "|")
+		if len(parts) < 2 {
+			continue
+		}
+		ref := core.GitRef{
+			RefName:       parts[0],
+			RefType:       "branch",
+			TargetSHA:     parts[1],
+			LastUpdatedAt: now,
+		}
+		if len(parts) > 2 && parts[2] != "" {
+			ref.UpstreamRef = parts[2]
+			ahead, behind := g.AheadBehind(parts[0], parts[2])
+			ref.AheadCount = ahead
+			ref.BehindCount = behind
+		}
+		refs = append(refs, ref)
+	}
+	return refs, nil
+}
+
+// ListTags returns all Git tags.
+func (g *GitCollector) ListTags() ([]core.GitRef, error) {
+	format := "%(refname:short)|%(objectname)"
+	out, err := g.run("for-each-ref", "--format="+format, "refs/tags/")
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+
+	var tags []core.GitRef
+	now := time.Now().UTC()
+	lines := strings.Split(out, "\n")
+	for _, l := range lines {
+		parts := strings.Split(l, "|")
+		if len(parts) < 2 {
+			continue
+		}
+		tags = append(tags, core.GitRef{
+			RefName:       parts[0],
+			RefType:       "tag",
+			TargetSHA:     parts[1],
+			LastUpdatedAt: now,
+		})
+	}
+	return tags, nil
+}
+
+// AheadBehind returns ahead and behind counts between a local ref and its upstream.
+func (g *GitCollector) AheadBehind(localRef, upstreamRef string) (ahead int, behind int) {
+	out, err := g.run("rev-list", "--left-right", "--count", localRef+"..."+upstreamRef)
+	if err != nil {
+		return 0, 0
+	}
+	parts := strings.Fields(out)
+	if len(parts) == 2 {
+		ahead, _ = strconv.Atoi(parts[0])
+		behind, _ = strconv.Atoi(parts[1])
+	}
+	return ahead, behind
+}
+
+// CommitsBetween collects detailed commits between two refs (e.g. base..head) or recent commits.
+func (g *GitCollector) CommitsBetween(baseRef, headRef string, limit int) ([]core.Commit, error) {
+	var args []string
+	if baseRef != "" && headRef != "" {
+		args = []string{"log", fmt.Sprintf("%s..%s", baseRef, headRef)}
+	} else if headRef != "" {
+		args = []string{"log", headRef}
+	} else {
+		args = []string{"log"}
+	}
+
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-n%d", limit))
+	}
+
+	// Format: %H (sha)|%h (short)|%P (parents)|%an|%ae|%cn|%ce|%aI (ISO 8601)|%s (subject)|%B (body)
+	// We use custom record and field separators
+	fieldSep := "§§§"
+	recordSep := "¶¶¶"
+	format := fmt.Sprintf("%s%%H%s%%h%s%%P%s%%an%s%%ae%s%%cn%s%%ce%s%%aI%s%%s%s%%b",
+		recordSep, fieldSep, fieldSep, fieldSep, fieldSep, fieldSep, fieldSep, fieldSep, fieldSep, fieldSep)
+
+	args = append(args, "--format="+format, "--numstat")
+
+	out, err := g.run(args...)
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+
+	return parseGitLogOutput(out, recordSep, fieldSep), nil
+}
+
+// parseGitLogOutput parses our structured git log output.
+func parseGitLogOutput(out, recordSep, fieldSep string) []core.Commit {
+	var commits []core.Commit
+	records := strings.Split(out, recordSep)
+
+	for _, rec := range records {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+
+		parts := strings.Split(rec, fieldSep)
+		if len(parts) < 10 {
+			continue
+		}
+
+		sha := parts[0]
+		shortSHA := parts[1]
+		parentSHAs := strings.Fields(parts[2])
+		authorName := parts[3]
+		authorEmail := parts[4]
+		committerName := parts[5]
+		committerEmail := parts[6]
+		tsStr := parts[7]
+		subject := parts[8]
+		bodyAndStats := parts[9]
+
+		timestamp, err := time.Parse(time.RFC3339, tsStr)
+		if err != nil {
+			timestamp = time.Now().UTC()
+		}
+
+		// Separate commit message body from --numstat output
+		statLines := strings.Split(bodyAndStats, "\n")
+		var bodyLines []string
+		var changedFiles []string
+		insertions := 0
+		deletions := 0
+
+		for _, sl := range statLines {
+			fields := strings.Fields(sl)
+			if len(fields) == 3 && isNumericOrDash(fields[0]) && isNumericOrDash(fields[1]) {
+				ins, _ := strconv.Atoi(fields[0])
+				del, _ := strconv.Atoi(fields[1])
+				insertions += ins
+				deletions += del
+				changedFiles = append(changedFiles, fields[2])
+			} else {
+				bodyLines = append(bodyLines, sl)
+			}
+		}
+
+		message := strings.TrimSpace(strings.Join(bodyLines, "\n"))
+		if message == "" {
+			message = subject
+		}
+
+		commits = append(commits, core.Commit{
+			SHA:            sha,
+			ShortSHA:       shortSHA,
+			ParentSHAs:     parentSHAs,
+			AuthorName:     authorName,
+			AuthorEmail:    authorEmail,
+			CommitterName:  committerName,
+			CommitterEmail: committerEmail,
+			Timestamp:      timestamp,
+			Subject:        subject,
+			Message:        message,
+			FilesChanged:   len(changedFiles),
+			Insertions:     insertions,
+			Deletions:      deletions,
+			ChangedFiles:   changedFiles,
+		})
+	}
+
+	return commits
+}
+
+func isNumericOrDash(s string) bool {
+	if s == "-" {
+		return true
+	}
+	_, err := strconv.Atoi(s)
+	return err == nil
+}
