@@ -3,19 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevTrail — Developer Activity Intelligence Dashboard</title>
+  <title>DevTrail — Developer Activity Intelligence Cockpit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base: #07090e;
-      --bg-surface: #0e121d;
-      --bg-card: rgba(15, 20, 32, 0.85);
-      --bg-card-hover: rgba(23, 31, 48, 0.95);
+      --bg-base: #090c13;
+      --bg-surface: #0f1420;
+      --bg-card: #131926;
+      --bg-card-hover: #182030;
       --border-subtle: rgba(255, 255, 255, 0.08);
       --border-accent: rgba(56, 189, 248, 0.35);
-      --border-purple: rgba(168, 85, 247, 0.35);
       --border-green: rgba(16, 185, 129, 0.35);
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
@@ -36,79 +35,81 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* Universal High-Visibility Custom Scrollbars */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #07090e; }
-    ::-webkit-scrollbar-thumb { background: #26334d; border-radius: 9999px; border: 2px solid #07090e; }
-    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+    /* Custom Sleek Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #26334d; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
 
     html, body {
       height: 100vh;
       background: var(--bg-base);
       color: var(--text-main);
       font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.45;
       overflow: hidden;
       display: flex;
     }
 
-    /* Sidebar Navigation */
+    /* Sidebar Navigation (Zero-jump transitions) */
     aside {
-      width: 255px;
+      width: 240px;
       background: var(--bg-surface);
       border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
       z-index: 30;
+      user-select: none;
     }
     .brand {
-      padding: 1.25rem 1.25rem 1.1rem;
+      padding: 1rem 1.15rem;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.65rem;
       border-bottom: 1px solid var(--border-subtle);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
     }
     .brand-logo {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       background: linear-gradient(135deg, var(--emerald), var(--cyan));
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
       color: #000;
-      font-size: 1.2rem;
-      box-shadow: 0 0 16px var(--emerald-glow);
+      font-size: 1rem;
+      box-shadow: 0 0 14px var(--emerald-glow);
     }
-    .brand-title { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; }
-    .brand-sub { font-size: 0.68rem; color: var(--emerald); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; }
+    .brand-title { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; }
+    .brand-sub { font-size: 0.65rem; color: var(--emerald); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
 
-    .nav-list { list-style: none; padding: 0.85rem 0.6rem; flex: 1; overflow-y: auto; }
-    .nav-label { font-size: 0.65rem; text-transform: uppercase; color: var(--text-dim); padding: 0.6rem 0.75rem 0.25rem; font-weight: 700; letter-spacing: 0.08em; }
+    .nav-list { list-style: none; padding: 0.65rem 0.5rem; flex: 1; overflow-y: auto; }
+    .nav-label { font-size: 0.62rem; text-transform: uppercase; color: var(--text-dim); padding: 0.5rem 0.65rem 0.2rem; font-weight: 700; letter-spacing: 0.08em; }
     .nav-item {
-      padding: 0.65rem 0.85rem;
-      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 500;
       color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 0.7rem;
-      margin-bottom: 0.2rem;
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      gap: 0.6rem;
+      margin-bottom: 0.15rem;
+      transition: background 0.1s ease, color 0.1s ease;
     }
     .nav-item:hover { color: var(--text-main); background: var(--bg-card-hover); }
     .nav-item.active {
       color: var(--emerald);
       background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      border: 1px solid rgba(16, 185, 129, 0.25);
       font-weight: 700;
-      box-shadow: 0 0 14px rgba(16, 185, 129, 0.15);
     }
-    .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+    .nav-icon { font-size: 0.95rem; width: 16px; text-align: center; }
 
     /* App Main Layout */
     .app-main {
@@ -122,19 +123,19 @@
 
     /* Top Bar (GitLookout + Beacon style) */
     .topbar {
-      height: 60px;
+      height: 52px;
       border-bottom: 1px solid var(--border-subtle);
       background: var(--bg-surface);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 1.75rem;
+      padding: 0 1.5rem;
       flex-shrink: 0;
       z-index: 10;
     }
-    .topbar-left { display: flex; align-items: center; gap: 0.85rem; }
-    .traffic-lights { display: flex; gap: 6px; margin-right: 0.5rem; }
-    .traffic-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .topbar-left { display: flex; align-items: center; gap: 0.75rem; }
+    .traffic-lights { display: flex; gap: 6px; margin-right: 0.35rem; }
+    .traffic-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .dot-red { background: #ff5f56; }
     .dot-yellow { background: #ffbd2e; }
     .dot-green { background: #27c93f; }
@@ -142,22 +143,22 @@
     .repo-pill {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      background: #090d16;
+      gap: 0.45rem;
+      background: var(--bg-base);
       border: 1px solid var(--border-subtle);
-      border-radius: 7px;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.8rem;
+      border-radius: 6px;
+      padding: 0.25rem 0.65rem;
+      font-size: 0.75rem;
       font-family: var(--font-mono);
       font-weight: 600;
     }
     .badge-status {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      font-size: 0.75rem;
-      padding: 0.2rem 0.55rem;
-      border-radius: 6px;
+      gap: 0.3rem;
+      font-size: 0.72rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: 5px;
       background: rgba(16, 185, 129, 0.1);
       color: var(--emerald);
       border: 1px solid rgba(16, 185, 129, 0.25);
@@ -167,104 +168,102 @@
       color: var(--cyan);
       border-color: rgba(56, 189, 248, 0.25);
     }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); box-shadow: 0 0 8px var(--emerald); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
 
-    .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
     button {
       background: var(--bg-card-hover);
       color: var(--text-main);
       border: 1px solid var(--border-subtle);
-      border-radius: 7px;
-      padding: 0.45rem 0.85rem;
-      font-size: 0.82rem;
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.78rem;
       font-weight: 600;
       font-family: var(--font-sans);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      transition: all 0.15s ease;
+      gap: 0.35rem;
+      transition: background 0.12s ease, border-color 0.12s ease;
     }
     button:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.25); }
     button.btn-emerald {
       background: linear-gradient(135deg, #10b981, #059669);
       color: #000;
       border: none;
-      font-weight: 800;
-      box-shadow: 0 0 16px var(--emerald-glow);
+      font-weight: 700;
+      box-shadow: 0 0 12px var(--emerald-glow);
     }
-    button.btn-emerald:hover { opacity: 0.95; transform: translateY(-1px); }
+    button.btn-emerald:hover { opacity: 0.95; }
     button.btn-cyan {
       background: linear-gradient(135deg, #38bdf8, #0284c7);
       color: #000;
       border: none;
-      font-weight: 800;
-      box-shadow: 0 0 14px var(--cyan-glow);
+      font-weight: 700;
+      box-shadow: 0 0 12px var(--cyan-glow);
     }
-    button.btn-cyan:hover { opacity: 0.95; transform: translateY(-1px); }
+    button.btn-cyan:hover { opacity: 0.95; }
 
-    /* Viewport Scroll Container */
+    /* Viewport (Zero-jump, smooth display) */
     .viewport {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 1.5rem 1.75rem;
-      height: calc(100vh - 60px);
+      padding: 1.25rem 1.5rem;
+      height: calc(100vh - 52px);
       overscroll-behavior: contain;
     }
 
-    .view-panel { display: none; }
-    .view-panel.active { display: block; animation: fadeIn 0.18s cubic-bezier(0.4, 0, 0.2, 1); }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .view-panel { display: none; opacity: 0; }
+    .view-panel.active { display: block; opacity: 1; animation: smoothFade 0.12s ease-out; }
+    @keyframes smoothFade { from { opacity: 0.7; } to { opacity: 1; } }
 
     /* Cards & Grids */
     .stat-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.25rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1rem;
     }
     .stat-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 1.15rem;
-      backdrop-filter: blur(12px);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
       position: relative;
       overflow: hidden;
-      transition: transform 0.15s ease, border-color 0.15s ease;
+      transition: border-color 0.15s ease;
     }
-    .stat-card:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.15); }
+    .stat-card:hover { border-color: rgba(255, 255, 255, 0.15); }
     .stat-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
       background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.45), transparent);
     }
-    .stat-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
-    .stat-val { font-size: 1.7rem; font-weight: 800; margin-top: 0.35rem; font-family: var(--font-mono); }
-    .stat-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .stat-label { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+    .stat-val { font-size: 1.5rem; font-weight: 800; margin-top: 0.25rem; font-family: var(--font-mono); }
+    .stat-desc { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; }
 
     .content-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.35rem;
-      margin-bottom: 1.25rem;
-      backdrop-filter: blur(12px);
+      border-radius: 10px;
+      padding: 1.15rem;
+      margin-bottom: 1rem;
     }
-    .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .card-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; display: flex; align-items: center; gap: 0.5rem; }
+    .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; }
+    .card-title { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 0.45rem; }
 
     /* Badges */
     .badge {
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       font-weight: 700;
-      padding: 0.22rem 0.6rem;
+      padding: 0.18rem 0.5rem;
       border-radius: 9999px;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 0.25rem;
     }
     .badge-cyan { background: rgba(56, 189, 248, 0.15); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
     .badge-purple { background: rgba(168, 85, 247, 0.15); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.3); }
@@ -278,94 +277,87 @@
     .lookout-row {
       display: grid;
       grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
     }
     @media (max-width: 1200px) { .lookout-row { grid-template-columns: 1fr; } }
 
     .heatmap-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.25rem;
+      border-radius: 10px;
+      padding: 1.15rem;
       position: relative;
     }
-    .heatmap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
-    .heatmap-title { font-size: 0.95rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; }
-    .year-pills { display: flex; gap: 0.3rem; background: #07090e; padding: 0.2rem; border-radius: 6px; border: 1px solid var(--border-subtle); }
-    .year-pill { padding: 0.2rem 0.55rem; font-size: 0.72rem; border-radius: 4px; cursor: pointer; color: var(--text-dim); }
+    .heatmap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.4rem; }
+    .heatmap-title { font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.45rem; }
+    .year-pills { display: flex; gap: 0.25rem; background: var(--bg-base); padding: 0.15rem; border-radius: 5px; border: 1px solid var(--border-subtle); }
+    .year-pill { padding: 0.15rem 0.45rem; font-size: 0.68rem; border-radius: 4px; cursor: pointer; color: var(--text-dim); }
     .year-pill.active { background: var(--bg-card-hover); color: var(--text-main); font-weight: 700; }
 
     .heatmap-grid {
       display: grid;
       grid-template-columns: repeat(52, 1fr);
-      grid-template-rows: repeat(7, 12px);
-      gap: 3px;
+      grid-template-rows: repeat(7, 10px);
+      gap: 2.5px;
       overflow-x: auto;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.4rem;
     }
     .heatmap-cell {
       background: #111724;
       border-radius: 2px;
-      transition: all 0.15s ease;
+      transition: transform 0.1s ease;
       cursor: pointer;
     }
-    .heatmap-cell:hover { transform: scale(1.35); z-index: 10; border: 1px solid #fff; }
+    .heatmap-cell:hover { transform: scale(1.3); z-index: 10; border: 1px solid #fff; }
     .heatmap-cell.l1 { background: #0e4429; }
     .heatmap-cell.l2 { background: #006d32; }
     .heatmap-cell.l3 { background: #26a641; box-shadow: 0 0 6px rgba(38, 166, 65, 0.4); }
     .heatmap-cell.l4 { background: #39d353; box-shadow: 0 0 8px rgba(57, 211, 83, 0.8); }
 
-    /* Circular Radial Progress Donut Meters (GitLookout top right) */
+    /* PERFECT MATHEMATICALLY CENTERED RADIAL DONUT GAUGES */
     .donuts-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.25rem;
+      border-radius: 10px;
+      padding: 1.15rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     }
-    .donut-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; text-align: center; }
+    .donut-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center; }
     .donut-box { display: flex; flex-direction: column; align-items: center; }
-    .donut-svg { width: 68px; height: 68px; transform: rotate(-90deg); }
-    .donut-bg { fill: none; stroke: rgba(255, 255, 255, 0.08); stroke-width: 6; }
-    .donut-fill { fill: none; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 175; stroke-dashoffset: 40; transition: stroke-dashoffset 0.8s ease; }
-    .donut-emerald { stroke: var(--emerald); filter: drop-shadow(0 0 6px var(--emerald-glow)); }
-    .donut-cyan { stroke: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan-glow)); }
-    .donut-blue { stroke: var(--blue); }
-    .donut-amber { stroke: var(--amber); }
-    .donut-val-text { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 800; margin-top: -46px; height: 46px; display: flex; align-items: center; justify-content: center; }
-    .donut-label { font-size: 0.68rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-top: 0.5rem; letter-spacing: 0.04em; }
+    .donut-svg { width: 72px; height: 72px; }
+    .donut-label { font-size: 0.65rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-top: 0.35rem; letter-spacing: 0.04em; }
 
     /* Middle Row: Area Spline Velocity Chart & Bus Factor (GitLookout) */
     .lookout-mid-row {
       display: grid;
       grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
     }
     @media (max-width: 1200px) { .lookout-mid-row { grid-template-columns: 1fr; } }
 
     .velocity-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.25rem;
+      border-radius: 10px;
+      padding: 1.15rem;
     }
-    .velocity-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .legend-pills { display: flex; gap: 0.6rem; }
-    .legend-pill { font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem; }
-    .area-chart-container { width: 100%; height: 160px; position: relative; }
+    .velocity-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; }
+    .legend-pills { display: flex; gap: 0.5rem; }
+    .legend-pill { font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .area-chart-container { width: 100%; height: 140px; position: relative; }
     .area-svg { width: 100%; height: 100%; }
 
     /* Popularity & Bus Factor Widgets */
-    .side-widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .side-widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
     .pill-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 1rem;
+      border-radius: 10px;
+      padding: 0.85rem;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -376,20 +368,53 @@
       grid-column: span 2;
       background: linear-gradient(180deg, rgba(244, 63, 94, 0.08), transparent);
       border-color: rgba(244, 63, 94, 0.3);
-      padding: 1.2rem;
+      padding: 1rem;
     }
+
+    /* GitLookout 4-Column Product Widget Row (Screenshot 1) */
+    .widgets-4col {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 1200px) { .widgets-4col { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px) { .widgets-4col { grid-template-columns: 1fr; } }
+
+    .mini-widget {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      height: 220px;
+    }
+    .mini-widget-title { font-size: 0.72rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+    .mini-widget-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+    .mini-item {
+      padding: 0.5rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      font-size: 0.76rem;
+      transition: background 0.1s ease;
+    }
+    .mini-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .mini-item-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.2rem; }
+    .mini-item-meta { font-size: 0.68rem; color: var(--text-dim); display: flex; justify-content: space-between; }
 
     /* Labels Distribution & Inflow/Outflow */
     .distribution-row {
       display: grid;
       grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
     }
     @media (max-width: 1200px) { .distribution-row { grid-template-columns: 1fr; } }
-    .dist-bar-item { margin-bottom: 0.75rem; }
-    .dist-bar-header { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem; }
-    .dist-bar-track { height: 6px; background: rgba(255, 255, 255, 0.06); border-radius: 9999px; overflow: hidden; }
+    .dist-bar-item { margin-bottom: 0.65rem; }
+    .dist-bar-header { display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .dist-bar-track { height: 5px; background: rgba(255, 255, 255, 0.06); border-radius: 9999px; overflow: hidden; }
     .dist-bar-fill { height: 100%; border-radius: 9999px; }
 
     /* ========================================================= */
@@ -397,48 +422,45 @@
     /* ========================================================= */
     .kraken-container {
       display: flex;
-      height: 720px;
+      height: 700px;
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
+      border-radius: 10px;
       overflow: hidden;
-      background: #090d16;
+      background: #090c13;
     }
     .kraken-left {
-      width: 230px;
+      width: 220px;
       border-right: 1px solid var(--border-subtle);
       background: var(--bg-surface);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
     }
-    .kraken-search {
-      padding: 0.65rem 0.85rem;
-      border-bottom: 1px solid var(--border-subtle);
-    }
+    .kraken-search { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-subtle); }
     .search-input {
       width: 100%;
-      background: #07090e;
+      background: var(--bg-base);
       border: 1px solid var(--border-subtle);
-      border-radius: 6px;
+      border-radius: 5px;
       color: var(--text-main);
-      padding: 0.4rem 0.6rem;
-      font-size: 0.78rem;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.75rem;
       font-family: var(--font-sans);
     }
-    .kraken-tree { flex: 1; overflow-y: auto; padding: 0.5rem 0; font-size: 0.8rem; }
+    .kraken-tree { flex: 1; overflow-y: auto; padding: 0.4rem 0; font-size: 0.76rem; }
     .tree-section-title {
-      font-size: 0.68rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;
-      padding: 0.5rem 0.85rem 0.25rem; letter-spacing: 0.05em; display: flex; justify-content: space-between;
+      font-size: 0.65rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;
+      padding: 0.4rem 0.75rem 0.2rem; letter-spacing: 0.05em; display: flex; justify-content: space-between;
     }
     .tree-item {
-      padding: 0.35rem 0.85rem;
+      padding: 0.3rem 0.75rem;
       display: flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 0.4rem;
       color: var(--text-muted);
       cursor: pointer;
       font-family: var(--font-mono);
-      font-size: 0.76rem;
+      font-size: 0.74rem;
     }
     .tree-item:hover { background: var(--bg-card-hover); color: var(--text-main); }
     .tree-item.active { background: rgba(56, 189, 248, 0.12); color: var(--cyan); font-weight: 700; }
@@ -448,16 +470,16 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background: #090d16;
+      background: #090c13;
     }
     .kraken-graph-header {
-      height: 38px;
+      height: 34px;
       border-bottom: 1px solid var(--border-subtle);
       background: var(--bg-surface);
       display: flex;
       align-items: center;
-      padding: 0 1rem;
-      font-size: 0.74rem;
+      padding: 0 0.85rem;
+      font-size: 0.7rem;
       font-weight: 700;
       color: var(--text-dim);
       gap: 1rem;
@@ -466,21 +488,21 @@
     .commit-row {
       display: flex;
       align-items: center;
-      height: 36px;
-      padding: 0 1rem;
+      height: 32px;
+      padding: 0 0.85rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.03);
       cursor: pointer;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       transition: background 0.1s ease;
     }
     .commit-row:hover { background: rgba(255, 255, 255, 0.04); }
     .commit-row.selected { background: rgba(56, 189, 248, 0.15); border-left: 3px solid var(--cyan); }
-    .commit-rail-cell { width: 130px; height: 36px; position: relative; flex-shrink: 0; }
-    .commit-msg-cell { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 0.75rem; font-weight: 500; }
-    .commit-meta-cell { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim); display: flex; gap: 0.75rem; align-items: center; }
+    .commit-rail-cell { width: 120px; height: 32px; position: relative; flex-shrink: 0; }
+    .commit-msg-cell { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 0.65rem; font-weight: 500; }
+    .commit-meta-cell { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); display: flex; gap: 0.65rem; align-items: center; }
 
     .kraken-right {
-      width: 420px;
+      width: 400px;
       border-left: 1px solid var(--border-subtle);
       background: var(--bg-surface);
       display: flex;
@@ -489,27 +511,27 @@
       overflow: hidden;
     }
     .commit-inspect-header {
-      padding: 1rem 1.25rem;
+      padding: 0.85rem 1rem;
       border-bottom: 1px solid var(--border-subtle);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
     }
     .inspect-sha-badge {
-      font-family: var(--font-mono); font-size: 0.76rem; background: #07090e;
-      padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-subtle);
-      color: var(--cyan); display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: var(--font-mono); font-size: 0.72rem; background: var(--bg-base);
+      padding: 0.15rem 0.45rem; border-radius: 4px; border: 1px solid var(--border-subtle);
+      color: var(--cyan); display: inline-flex; align-items: center; gap: 0.35rem;
     }
-    .inspect-scroll { flex: 1; overflow-y: auto; padding: 1.25rem; }
+    .inspect-scroll { flex: 1; overflow-y: auto; padding: 1rem; }
     .diff-box {
       background: #06080d;
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
+      border-radius: 6px;
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       line-height: 1.5;
-      padding: 0.75rem;
+      padding: 0.65rem;
       white-space: pre-wrap;
       overflow-x: auto;
-      max-height: 380px;
+      max-height: 360px;
     }
     .diff-add { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
     .diff-del { color: #f87171; background: rgba(248, 113, 113, 0.1); }
@@ -520,57 +542,57 @@
     .timeline-banner {
       background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.8));
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.25rem 1.75rem;
-      margin-bottom: 1.25rem;
+      border-radius: 10px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 0.85rem;
     }
-    .timeline-metrics { display: flex; gap: 2.5rem; }
+    .timeline-metrics { display: flex; gap: 2rem; }
     .tl-metric-item { display: flex; flex-direction: column; }
-    .tl-metric-val { font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); }
-    .tl-metric-lbl { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+    .tl-metric-val { font-size: 1.45rem; font-weight: 800; font-family: var(--font-mono); }
+    .tl-metric-lbl { font-size: 0.65rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 
     .gantt-container {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.25rem;
+      border-radius: 10px;
+      padding: 1.15rem;
       overflow-x: auto;
     }
     .gantt-header-row {
       display: grid;
-      grid-template-columns: 240px repeat(5, 1fr);
+      grid-template-columns: 220px repeat(5, 1fr);
       border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 0.6rem;
-      font-size: 0.75rem;
+      padding-bottom: 0.5rem;
+      font-size: 0.72rem;
       font-weight: 700;
       color: var(--text-dim);
     }
     .gantt-track-row {
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 220px 1fr;
       align-items: center;
-      padding: 0.75rem 0;
+      padding: 0.65rem 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
-    .gantt-track-label { font-size: 0.82rem; font-weight: 700; font-family: var(--font-mono); }
-    .gantt-track-sub { font-size: 0.72rem; color: var(--text-dim); }
-    .gantt-lane-area { position: relative; height: 26px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; }
+    .gantt-track-label { font-size: 0.78rem; font-weight: 700; font-family: var(--font-mono); }
+    .gantt-track-sub { font-size: 0.68rem; color: var(--text-dim); }
+    .gantt-lane-area { position: relative; height: 24px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; }
     .gantt-bar {
       position: absolute;
-      top: 3px;
-      bottom: 3px;
-      border-radius: 5px;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 4px;
       background: linear-gradient(90deg, #10b981, #059669);
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
       display: flex;
       align-items: center;
-      padding: 0 0.5rem;
-      font-size: 0.7rem;
+      padding: 0 0.45rem;
+      font-size: 0.68rem;
       font-weight: 700;
       color: #000;
       white-space: nowrap;
@@ -578,7 +600,7 @@
     }
     .gantt-bar.in-progress {
       background: linear-gradient(90deg, #a855f7, #7c3aed);
-      box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
       color: #fff;
     }
 
@@ -588,22 +610,22 @@
     .kanban-board {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 1rem;
-      min-width: 1100px;
-      padding-bottom: 1rem;
+      gap: 0.85rem;
+      min-width: 1050px;
+      padding-bottom: 0.85rem;
     }
     .kanban-col {
       background: rgba(14, 18, 29, 0.7);
       border: 1px solid var(--border-subtle);
-      border-radius: 12px;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 180px);
+      max-height: calc(100vh - 170px);
     }
     .kanban-col-header {
-      padding: 0.85rem 1rem;
+      padding: 0.75rem 0.85rem;
       border-bottom: 1px solid var(--border-subtle);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -614,41 +636,41 @@
     .kanban-cards-area {
       flex: 1;
       overflow-y: auto;
-      padding: 0.85rem;
+      padding: 0.75rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.65rem;
     }
     .kanban-card {
-      background: #101625;
+      background: #111726;
       border: 1px solid var(--border-subtle);
-      border-radius: 9px;
-      padding: 0.85rem;
+      border-radius: 8px;
+      padding: 0.75rem;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: border-color 0.12s ease;
       position: relative;
     }
-    .kanban-card:hover { border-color: var(--border-accent); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+    .kanban-card:hover { border-color: var(--border-accent); }
     .kanban-card.working-pulse {
       border: 2px solid var(--amber);
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
     }
-    .kanban-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
-    .kanban-card-id { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 800; color: var(--cyan); }
-    .kanban-card-title { font-size: 0.85rem; font-weight: 700; line-height: 1.35; margin-bottom: 0.35rem; }
-    .kanban-card-meta { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .kanban-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; }
+    .kanban-card-id { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 800; color: var(--cyan); }
+    .kanban-card-title { font-size: 0.8rem; font-weight: 700; line-height: 1.35; margin-bottom: 0.3rem; }
+    .kanban-card-meta { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-top: 0.45rem; }
 
     /* Sliding Context Drawer (Command Center right panel) */
     .drawer {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 480px;
+      position: fixed; top: 0; right: 0; bottom: 0; width: 460px;
       background: var(--bg-surface); border-left: 1px solid var(--border-accent);
-      padding: 1.75rem; display: flex; flex-direction: column; z-index: 60;
+      padding: 1.5rem; display: flex; flex-direction: column; z-index: 60;
       box-shadow: -12px 0 32px rgba(0, 0, 0, 0.7);
-      transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateX(100%); transition: transform 0.2s ease-out;
     }
     .drawer.open { transform: translateX(0); }
-    .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-    .drawer-body { flex: 1; overflow-y: auto; padding-right: 0.5rem; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .drawer-body { flex: 1; overflow-y: auto; padding-right: 0.4rem; }
 
     /* ========================================================= */
     /* VIEW 8: ACTIVE CONFIGURATION - 100% SCROLLABLE & STYLED   */
@@ -656,59 +678,59 @@
     .ide-window {
       background: #080b12;
       border: 1px solid var(--border-subtle);
-      border-radius: 14px;
+      border-radius: 10px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
     .ide-header {
-      height: 48px;
+      height: 44px;
       background: #0d121f;
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 1.25rem;
+      padding: 0 1rem;
     }
-    .ide-tabs { display: flex; align-items: center; gap: 0.4rem; height: 100%; }
+    .ide-tabs { display: flex; align-items: center; gap: 0.35rem; height: 100%; }
     .ide-tab {
       height: 100%;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0 1.1rem;
-      font-size: 0.82rem;
+      gap: 0.45rem;
+      padding: 0 0.95rem;
+      font-size: 0.78rem;
       font-weight: 600;
       color: var(--text-muted);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      transition: all 0.15s ease;
+      transition: color 0.1s ease;
     }
-    .ide-tab:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.02); }
+    .ide-tab:hover { color: var(--text-main); }
     .ide-tab.active {
       color: var(--cyan);
       border-bottom-color: var(--cyan);
       background: rgba(56, 189, 248, 0.08);
       font-weight: 700;
     }
-    .ide-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .ide-actions { display: flex; align-items: center; gap: 0.45rem; }
 
-    /* The Scrollable Editor Pane */
+    /* Scrollable Code Window */
     .ide-editor-container {
       display: flex;
-      height: 560px;
+      height: 540px;
       overflow: hidden;
       background: #06090f;
       position: relative;
     }
     .ide-gutter {
-      width: 52px;
+      width: 48px;
       background: #090e18;
       border-right: 1px solid var(--border-subtle);
-      padding: 1.25rem 0.5rem;
+      padding: 1rem 0.45rem;
       font-family: var(--font-mono);
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       line-height: 1.6;
       color: var(--text-dim);
       text-align: right;
@@ -718,11 +740,11 @@
     }
     .ide-code-scroll {
       flex: 1;
-      overflow-y: scroll !important; /* Always visible scrollbar track */
+      overflow-y: scroll !important;
       overflow-x: auto;
-      padding: 1.25rem;
+      padding: 1rem;
       font-family: var(--font-mono);
-      font-size: 0.84rem;
+      font-size: 0.8rem;
       line-height: 1.6;
       color: #93c5fd;
       white-space: pre;
@@ -735,32 +757,30 @@
     .token-key { color: #38bdf8; font-weight: 600; }
     .token-string { color: #34d399; }
     .token-val { color: #f59e0b; }
-    .token-bullet { color: #c084fc; font-weight: 700; }
 
     /* Tables */
-    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    th { text-align: left; padding: 0.65rem 0.85rem; font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--border-subtle); }
-    td { padding: 0.75rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    th { text-align: left; padding: 0.55rem 0.75rem; font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--border-subtle); }
+    td { padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
     tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
     /* Modal Form */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 80;
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 80;
     }
     .modal-overlay.open { display: flex; }
     .modal-card {
-      width: 480px; background: var(--bg-surface); border: 1px solid var(--border-accent);
-      border-radius: 14px; padding: 1.75rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+      width: 440px; background: var(--bg-surface); border: 1px solid var(--border-accent);
+      border-radius: 10px; padding: 1.5rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
     }
-    .form-group { margin-bottom: 1.1rem; }
-    .form-label { font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
-    .form-input, .form-select, .form-textarea {
-      width: 100%; background: #07090e; border: 1px solid var(--border-subtle);
-      border-radius: 7px; color: var(--text-main); padding: 0.55rem 0.75rem; font-size: 0.84rem;
+    .form-group { margin-bottom: 0.95rem; }
+    .form-label { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.35rem; display: block; }
+    .form-input, .form-select {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle);
+      border-radius: 6px; color: var(--text-main); padding: 0.45rem 0.65rem; font-size: 0.8rem;
       font-family: var(--font-sans);
     }
-    .form-input:focus, .form-textarea:focus { border-color: var(--cyan); outline: none; }
   </style>
 </head>
 <body>
@@ -777,29 +797,29 @@
 
     <ul class="nav-list">
       <div class="nav-label">Core Cockpit</div>
-      <li class="nav-item active" onclick="switchView('overview')"><span class="nav-icon">📊</span> Overview & Lookout</li>
-      <li class="nav-item" onclick="switchView('graph')"><span class="nav-icon">🌳</span> GitKraken Branch Graph</li>
-      <li class="nav-item" onclick="switchView('timeline')"><span class="nav-icon">⏱️</span> Sonar Gantt Timeline</li>
-      <li class="nav-item" onclick="switchView('kanban')"><span class="nav-icon">📋</span> Command Center Kanban</li>
+      <li class="nav-item active" onclick="switchNav('overview')"><span class="nav-icon">📊</span> Overview & Lookout</li>
+      <li class="nav-item" onclick="switchNav('graph')"><span class="nav-icon">🌳</span> GitKraken Branch Graph</li>
+      <li class="nav-item" onclick="switchNav('timeline')"><span class="nav-icon">⏱️</span> Sonar Gantt Timeline</li>
+      <li class="nav-item" onclick="switchNav('kanban')"><span class="nav-icon">📋</span> Command Center Kanban</li>
 
       <div class="nav-label">Activity & Evidence</div>
-      <li class="nav-item" onclick="switchView('checkpoints')"><span class="nav-icon">🏁</span> Checkpoints</li>
-      <li class="nav-item" onclick="switchView('evidence')"><span class="nav-icon">🧪</span> Test & Build Evidence</li>
-      <li class="nav-item" onclick="switchView('reports')"><span class="nav-icon">📑</span> Release Reports</li>
-      <li class="nav-item" onclick="switchView('events')"><span class="nav-icon">📜</span> Event Store (.db)</li>
+      <li class="nav-item" onclick="switchNav('checkpoints')"><span class="nav-icon">🏁</span> Checkpoints</li>
+      <li class="nav-item" onclick="switchNav('evidence')"><span class="nav-icon">🧪</span> Test & Build Evidence</li>
+      <li class="nav-item" onclick="switchNav('reports')"><span class="nav-icon">📑</span> Release Reports</li>
+      <li class="nav-item" onclick="switchNav('events')"><span class="nav-icon">📜</span> Event Store (.db)</li>
 
       <div class="nav-label">Configuration & Health</div>
-      <li class="nav-item" onclick="switchView('settings')"><span class="nav-icon">⚙️</span> Active Config (.yaml)</li>
-      <li class="nav-item" onclick="switchView('doctor')"><span class="nav-icon">🩺</span> System Doctor</li>
+      <li class="nav-item" onclick="switchNav('settings')"><span class="nav-icon">⚙️</span> Active Config (.yaml)</li>
+      <li class="nav-item" onclick="switchNav('doctor')"><span class="nav-icon">🩺</span> System Doctor</li>
     </ul>
 
     <!-- Bottom Status Pill (Beacon style) -->
-    <div style="padding:1rem; border-top:1px solid var(--border-subtle); font-size:0.75rem; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center;">
+    <div style="padding:0.85rem 1rem; border-top:1px solid var(--border-subtle); font-size:0.72rem; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center;">
       <div>
         <div><span class="status-dot" style="display:inline-block; margin-right:4px;"></span> Local SQLite WAL</div>
-        <div style="font-size:0.68rem; margin-top:2px;">Network: Disabled</div>
+        <div style="font-size:0.65rem; margin-top:2px;">Network: Disabled</div>
       </div>
-      <button onclick="refreshData()" style="padding:0.3rem 0.6rem; font-size:0.75rem;">↻ Sync</button>
+      <button onclick="refreshData()" style="padding:0.25rem 0.5rem; font-size:0.7rem;">↻ Sync</button>
     </div>
   </aside>
 
@@ -824,19 +844,19 @@
       </div>
 
       <div class="topbar-actions">
-        <button class="btn-emerald" onclick="openNewTaskModal()">+ New Task</button>
+        <button class="btn-emerald" onclick="openNewTaskModal()">+ Add Task</button>
         <button class="btn-cyan" onclick="generateReportNow()">📑 Generate Report</button>
       </div>
     </header>
 
-    <!-- VIEWPORT -->
+    <!-- VIEWPORT (Zero-jump transitions) -->
     <div class="viewport" id="main-viewport">
 
       <!-- ========================================================= -->
       <!-- VIEW 1: GITLOOKOUT COCKPIT + METRICS                      -->
       <!-- ========================================================= -->
       <div id="view-overview" class="view-panel active">
-        <!-- Top 4 Circular Donut Gauges & Metrics (Directly matching Screenshot 1) -->
+        <!-- Top Quick Metrics -->
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">Active Working Tree</div>
@@ -844,9 +864,9 @@
             <div class="stat-desc" id="ov-clean">Status: Clean (0 staged)</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Active Tasks</div>
+            <div class="stat-label">Tracked Tasks</div>
             <div class="stat-val" id="ov-tasks" style="color:var(--emerald);">4</div>
-            <div class="stat-desc">Tracked across AI providers</div>
+            <div class="stat-desc">Across AI providers</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Verified Test Evidence</div>
@@ -860,29 +880,29 @@
           </div>
         </div>
 
-        <!-- GitLookout Row: Heatmap & 4 Radial Donut Gauges -->
+        <!-- GitLookout Row: Heatmap & 4 Mathematically Centered Donut Gauges -->
         <div class="lookout-row">
           <!-- 245 Activity Contributions Heatmap -->
           <div class="heatmap-card">
             <div class="heatmap-header">
               <div>
                 <div class="heatmap-title">245 Activity Contributions in 2026</div>
-                <div style="font-size:0.75rem; color:var(--text-dim);">Live git & AI developer event density</div>
+                <div style="font-size:0.72rem; color:var(--text-dim);">Live git & AI developer event density</div>
               </div>
-              <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div style="display:flex; align-items:center; gap:0.6rem;">
                 <div class="year-pills">
                   <span class="year-pill active">2026</span>
                   <span class="year-pill">2025</span>
                   <span class="year-pill">2024</span>
                   <span class="year-pill">2023</span>
                 </div>
-                <div style="display:flex; gap:0.25rem; align-items:center; font-size:0.7rem; color:var(--text-dim);">
+                <div style="display:flex; gap:0.2rem; align-items:center; font-size:0.68rem; color:var(--text-dim);">
                   <span>Less</span>
-                  <span class="heatmap-cell" style="width:10px; height:10px;"></span>
-                  <span class="heatmap-cell l1" style="width:10px; height:10px;"></span>
-                  <span class="heatmap-cell l2" style="width:10px; height:10px;"></span>
-                  <span class="heatmap-cell l3" style="width:10px; height:10px;"></span>
-                  <span class="heatmap-cell l4" style="width:10px; height:10px;"></span>
+                  <span class="heatmap-cell" style="width:9px; height:9px;"></span>
+                  <span class="heatmap-cell l1" style="width:9px; height:9px;"></span>
+                  <span class="heatmap-cell l2" style="width:9px; height:9px;"></span>
+                  <span class="heatmap-cell l3" style="width:9px; height:9px;"></span>
+                  <span class="heatmap-cell l4" style="width:9px; height:9px;"></span>
                   <span>More</span>
                 </div>
               </div>
@@ -890,41 +910,59 @@
             <div class="heatmap-grid" id="cockpit-heatmap"></div>
           </div>
 
-          <!-- 4 Circular Donut Gauges (GitLookout Top Right) -->
+          <!-- 4 Circular Donut Gauges with DEAD CENTER Text (Screenshot 1) -->
           <div class="donuts-card">
-            <div class="heatmap-title" style="margin-bottom:0.75rem;">Repository Vital Gauges</div>
+            <div class="heatmap-title" style="margin-bottom:0.5rem;">Repository Vital Gauges</div>
             <div class="donut-row">
+              <!-- Gauge 1: PR OPEN -->
               <div class="donut-box">
-                <svg class="donut-svg" viewBox="0 0 70 70">
-                  <circle class="donut-bg" cx="35" cy="35" r="28" />
-                  <circle class="donut-fill donut-emerald" cx="35" cy="35" r="28" style="stroke-dashoffset: 40;" />
+                <svg class="donut-svg" viewBox="0 0 76 76">
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5.5" />
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="#10b981" stroke-width="5.5" stroke-linecap="round"
+                          stroke-dasharray="182" stroke-dashoffset="35" transform="rotate(-90 38 38)"
+                          style="filter: drop-shadow(0 0 6px rgba(16,185,129,0.5));" />
+                  <text x="38" y="38" text-anchor="middle" dominant-baseline="central"
+                        fill="#f8fafc" font-size="16" font-weight="800" font-family="'JetBrains Mono', monospace" id="gauge-tasks-val">10</text>
                 </svg>
-                <div class="donut-val-text" id="gauge-tasks-val">4</div>
-                <div class="donut-label">PR / Tasks</div>
+                <div class="donut-label">PR OPEN</div>
               </div>
+
+              <!-- Gauge 2: PR MERGED -->
               <div class="donut-box">
-                <svg class="donut-svg" viewBox="0 0 70 70">
-                  <circle class="donut-bg" cx="35" cy="35" r="28" />
-                  <circle class="donut-fill donut-cyan" cx="35" cy="35" r="28" style="stroke-dashoffset: 20;" />
+                <svg class="donut-svg" viewBox="0 0 76 76">
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5.5" />
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="#38bdf8" stroke-width="5.5" stroke-linecap="round"
+                          stroke-dasharray="182" stroke-dashoffset="182" transform="rotate(-90 38 38)" />
+                  <text x="38" y="38" text-anchor="middle" dominant-baseline="central"
+                        fill="#f8fafc" font-size="16" font-weight="800" font-family="'JetBrains Mono', monospace">0</text>
                 </svg>
-                <div class="donut-val-text">100%</div>
-                <div class="donut-label">Verified</div>
+                <div class="donut-label">PR MERGED</div>
               </div>
+
+              <!-- Gauge 3: PR REVIEW TIME -->
               <div class="donut-box">
-                <svg class="donut-svg" viewBox="0 0 70 70">
-                  <circle class="donut-bg" cx="35" cy="35" r="28" />
-                  <circle class="donut-fill donut-blue" cx="35" cy="35" r="28" style="stroke-dashoffset: 70;" />
+                <svg class="donut-svg" viewBox="0 0 76 76">
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5.5" />
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="#3b82f6" stroke-width="5.5" stroke-linecap="round"
+                          stroke-dasharray="182" stroke-dashoffset="75" transform="rotate(-90 38 38)"
+                          style="filter: drop-shadow(0 0 6px rgba(59,130,246,0.4));" />
+                  <text x="38" y="38" text-anchor="middle" dominant-baseline="central"
+                        fill="#f8fafc" font-size="15" font-weight="800" font-family="'JetBrains Mono', monospace">14h</text>
                 </svg>
-                <div class="donut-val-text">14h</div>
-                <div class="donut-label">Review</div>
+                <div class="donut-label">REVIEW</div>
               </div>
+
+              <!-- Gauge 4: ISSUES OPENED -->
               <div class="donut-box">
-                <svg class="donut-svg" viewBox="0 0 70 70">
-                  <circle class="donut-bg" cx="35" cy="35" r="28" />
-                  <circle class="donut-fill donut-amber" cx="35" cy="35" r="28" style="stroke-dashoffset: 120;" />
+                <svg class="donut-svg" viewBox="0 0 76 76">
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5.5" />
+                  <circle cx="38" cy="38" r="29" fill="none" stroke="#f59e0b" stroke-width="5.5" stroke-linecap="round"
+                          stroke-dasharray="182" stroke-dashoffset="120" transform="rotate(-90 38 38)"
+                          style="filter: drop-shadow(0 0 6px rgba(245,158,11,0.4));" />
+                  <text x="38" y="38" text-anchor="middle" dominant-baseline="central"
+                        fill="#f8fafc" font-size="16" font-weight="800" font-family="'JetBrains Mono', monospace">4</text>
                 </svg>
-                <div class="donut-val-text">0</div>
-                <div class="donut-label">Issues</div>
+                <div class="donut-label">ISSUES</div>
               </div>
             </div>
           </div>
@@ -943,10 +981,10 @@
               </div>
             </div>
             <div class="area-chart-container">
-              <svg class="area-svg" viewBox="0 0 500 160" preserveAspectRatio="none">
+              <svg class="area-svg" viewBox="0 0 500 140" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.5"/>
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.45"/>
                     <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
                   </linearGradient>
                   <linearGradient id="amberGrad" x1="0" y1="0" x2="0" y2="1">
@@ -954,14 +992,11 @@
                     <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
-                <!-- Top Glowing Green Wave -->
-                <path d="M0,160 Q120,40 250,20 T500,160 Z" fill="url(#greenGrad)" />
-                <path d="M0,160 Q120,40 250,20 T500,160" fill="none" stroke="#10b981" stroke-width="2.5" />
-                <!-- Inner Amber Wave -->
-                <path d="M0,160 Q140,80 250,60 T500,160 Z" fill="url(#amberGrad)" />
-                <path d="M0,160 Q140,80 250,60 T500,160" fill="none" stroke="#f59e0b" stroke-width="2" />
-                <!-- Purple Baseline -->
-                <line x1="0" y1="158" x2="500" y2="158" stroke="#a855f7" stroke-width="2" />
+                <path d="M0,140 Q120,30 250,15 T500,140 Z" fill="url(#greenGrad)" />
+                <path d="M0,140 Q120,30 250,15 T500,140" fill="none" stroke="#10b981" stroke-width="2" />
+                <path d="M0,140 Q140,70 250,50 T500,140 Z" fill="url(#amberGrad)" />
+                <path d="M0,140 Q140,70 250,50 T500,140" fill="none" stroke="#f59e0b" stroke-width="1.8" />
+                <line x1="0" y1="138" x2="500" y2="138" stroke="#a855f7" stroke-width="2" />
               </svg>
             </div>
           </div>
@@ -969,22 +1004,85 @@
           <!-- Bus Factor & Popularity Cards -->
           <div class="side-widgets">
             <div class="pill-card">
-              <div style="font-size:1.5rem; color:var(--amber); margin-bottom:0.25rem;">★</div>
-              <div style="font-size:1.3rem; font-weight:800; font-family:var(--font-mono);">18</div>
-              <div style="font-size:0.68rem; color:var(--text-dim); text-transform:uppercase;">STARS</div>
+              <div style="font-size:1.3rem; color:var(--amber); margin-bottom:0.15rem;">★</div>
+              <div style="font-size:1.2rem; font-weight:800; font-family:var(--font-mono);">18</div>
+              <div style="font-size:0.65rem; color:var(--text-dim); text-transform:uppercase;">STARS</div>
             </div>
             <div class="pill-card">
-              <div style="font-size:1.5rem; color:var(--cyan); margin-bottom:0.25rem;">⑂</div>
-              <div style="font-size:1.3rem; font-weight:800; font-family:var(--font-mono);">5</div>
-              <div style="font-size:0.68rem; color:var(--text-dim); text-transform:uppercase;">FORKS</div>
+              <div style="font-size:1.3rem; color:var(--cyan); margin-bottom:0.15rem;">⑂</div>
+              <div style="font-size:1.2rem; font-weight:800; font-family:var(--font-mono);">5</div>
+              <div style="font-size:0.65rem; color:var(--text-dim); text-transform:uppercase;">FORKS</div>
             </div>
             <div class="pill-card bus-risk">
-              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
-                <span style="font-size:1.1rem;">🛡️</span>
-                <span style="font-size:0.75rem; font-weight:800; color:var(--text-dim); text-transform:uppercase;">BUS FACTOR RISK</span>
+              <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem;">
+                <span style="font-size:1rem;">🛡️</span>
+                <span style="font-size:0.7rem; font-weight:800; color:var(--text-dim); text-transform:uppercase;">BUS FACTOR RISK</span>
               </div>
-              <div style="font-size:1.8rem; font-weight:800; font-family:var(--font-mono); color:var(--rose);">1</div>
-              <span class="badge badge-rose" style="margin-top:0.3rem;">HIGH RISK (SINGLE MAINTAINER)</span>
+              <div style="font-size:1.6rem; font-weight:800; font-family:var(--font-mono); color:var(--rose);">1</div>
+              <span class="badge badge-rose" style="margin-top:0.25rem;">HIGH RISK (SINGLE MAINTAINER)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- GitLookout 4-Column Widgets (Directly matching Screenshot 1) -->
+        <div class="widgets-4col">
+          <!-- 1. MY PRS -->
+          <div class="mini-widget">
+            <div class="mini-widget-title"><span>⑂</span> MY PRS</div>
+            <div class="mini-widget-list" id="widget-prs-list">
+              <div class="mini-item">
+                <div class="mini-item-title">Titles and names</div>
+                <div class="mini-item-meta"><span>#70 · main</span><span>3/1/2026</span></div>
+              </div>
+              <div class="mini-item">
+                <div class="mini-item-title">Favicon logo and add wi...</div>
+                <div class="mini-item-meta"><span>#69 · main</span><span>3/1/2026</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. CREATED ISSUES -->
+          <div class="mini-widget">
+            <div class="mini-widget-title"><span>⚠️</span> CREATED ISSUES</div>
+            <div class="mini-widget-list">
+              <div class="mini-item">
+                <div class="mini-item-title">[Compiler Bug] multi-thread sync</div>
+                <div class="mini-item-meta"><span class="badge badge-rose">Bug</span><span>10h ago</span></div>
+              </div>
+              <div class="mini-item">
+                <div class="mini-item-title">Verify landing page session flow</div>
+                <div class="mini-item-meta"><span class="badge badge-cyan">Feature</span><span>1d ago</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. REPO PRS -->
+          <div class="mini-widget">
+            <div class="mini-widget-title"><span>🔄</span> REPO PRS</div>
+            <div class="mini-widget-list">
+              <div class="mini-item">
+                <div class="mini-item-title">chore(deps): update upload-artifact</div>
+                <div class="mini-item-meta"><span>renovate-bot</span><span>3/2/2026</span></div>
+              </div>
+              <div class="mini-item">
+                <div class="mini-item-title">chore(deps): bump pure-go sqlite</div>
+                <div class="mini-item-meta"><span>dependabot</span><span>1d ago</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. MY ACTIONS / CI -->
+          <div class="mini-widget">
+            <div class="mini-widget-title"><span>⚡</span> MY ACTIONS / CI</div>
+            <div class="mini-widget-list">
+              <div class="mini-item">
+                <div class="mini-item-title">(Runtime) Build and Test</div>
+                <div class="mini-item-meta"><span class="badge badge-green">Passed (12ms)</span><span>Just now</span></div>
+              </div>
+              <div class="mini-item">
+                <div class="mini-item-title">Activity Snapshot Engine</div>
+                <div class="mini-item-meta"><span class="badge badge-green">Verified</span><span>1h ago</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -992,7 +1090,7 @@
         <!-- GitLookout Bottom Row: Labels Distribution & Inflow vs Outflow -->
         <div class="distribution-row">
           <div class="content-card" style="margin-bottom:0;">
-            <div class="card-title" style="margin-bottom:1rem;">Module & Task Distribution</div>
+            <div class="card-title" style="margin-bottom:0.75rem;">Module & Task Distribution</div>
             <div class="dist-bar-item">
               <div class="dist-bar-header"><span>STATUS: VERIFIED</span><span>88%</span></div>
               <div class="dist-bar-track"><div class="dist-bar-fill" style="width:88%; background:var(--emerald);"></div></div>
@@ -1008,16 +1106,16 @@
           </div>
 
           <div class="content-card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:center; text-align:center;">
-            <div class="card-title" style="justify-content:center; margin-bottom:1rem;">Issue & Task Inflow / Outflow</div>
+            <div class="card-title" style="justify-content:center; margin-bottom:0.75rem;">Issue & Task Inflow / Outflow</div>
             <div style="display:flex; justify-content:space-around;">
               <div>
-                <div style="font-size:2.2rem; font-weight:800; font-family:var(--font-mono); color:var(--cyan);">14</div>
-                <div style="font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase;">INFLOW</div>
+                <div style="font-size:1.8rem; font-weight:800; font-family:var(--font-mono); color:var(--cyan);">14</div>
+                <div style="font-size:0.68rem; font-weight:700; color:var(--text-dim); text-transform:uppercase;">INFLOW</div>
               </div>
               <div style="width:1px; background:var(--border-subtle);"></div>
               <div>
-                <div style="font-size:2.2rem; font-weight:800; font-family:var(--font-mono); color:var(--emerald);">11</div>
-                <div style="font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase;">OUTFLOW</div>
+                <div style="font-size:1.8rem; font-weight:800; font-family:var(--font-mono); color:var(--emerald);">11</div>
+                <div style="font-size:0.68rem; font-weight:700; color:var(--text-dim); text-transform:uppercase;">OUTFLOW</div>
               </div>
             </div>
           </div>
@@ -1037,9 +1135,9 @@
             <div class="kraken-tree">
               <div class="tree-section-title"><span>LOCAL</span><span class="badge badge-cyan" id="branch-count-badge">3</span></div>
               <div id="kraken-local-branches"></div>
-              <div class="tree-section-title" style="margin-top:0.75rem;"><span>REMOTE</span><span class="badge">1</span></div>
+              <div class="tree-section-title" style="margin-top:0.65rem;"><span>REMOTE</span><span class="badge">1</span></div>
               <div class="tree-item"><span style="color:var(--text-dim);">☁</span> origin/main</div>
-              <div class="tree-section-title" style="margin-top:0.75rem;"><span>TAGS</span><span class="badge">1</span></div>
+              <div class="tree-section-title" style="margin-top:0.65rem;"><span>TAGS</span><span class="badge">1</span></div>
               <div class="tree-item"><span style="color:var(--amber);">🏷️</span> v0.1.0</div>
             </div>
           </div>
@@ -1047,7 +1145,7 @@
           <!-- Center: Multi-Track Commit Rails -->
           <div class="kraken-center">
             <div class="kraken-graph-header">
-              <span style="width:130px;">GRAPH RAILS</span>
+              <span style="width:120px;">GRAPH RAILS</span>
               <span style="flex:1;">COMMIT SUBJECT / REFS</span>
               <span>AUTHOR & DATE</span>
             </div>
@@ -1057,18 +1155,18 @@
           <!-- Right: Commit Inspector & File Diff Pane -->
           <div class="kraken-right">
             <div class="commit-inspect-header">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
                 <span class="inspect-sha-badge" id="inspect-sha">HEAD</span>
-                <button onclick="copyCurrentCommitSHA()" style="padding:0.25rem 0.5rem; font-size:0.7rem;">Copy SHA</button>
+                <button onclick="copyCurrentCommitSHA()" style="padding:0.2rem 0.45rem; font-size:0.68rem;">Copy SHA</button>
               </div>
-              <div style="font-size:0.95rem; font-weight:700; line-height:1.4;" id="inspect-subject">Select a commit</div>
-              <div style="font-size:0.75rem; color:var(--text-dim); margin-top:0.35rem;" id="inspect-author">Author: ...</div>
+              <div style="font-size:0.85rem; font-weight:700; line-height:1.35;" id="inspect-subject">Select a commit</div>
+              <div style="font-size:0.7rem; color:var(--text-dim); margin-top:0.25rem;" id="inspect-author">Author: ...</div>
             </div>
             <div class="inspect-scroll">
-              <div style="font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0.5rem;">Changed Files</div>
-              <div id="inspect-files" style="font-family:var(--font-mono); font-size:0.78rem; margin-bottom:1rem;"></div>
+              <div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0.4rem;">Changed Files</div>
+              <div id="inspect-files" style="font-family:var(--font-mono); font-size:0.74rem; margin-bottom:0.85rem;"></div>
 
-              <div style="font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0.5rem;">Unified Diff Preview</div>
+              <div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0.4rem;">Unified Diff Preview</div>
               <pre class="diff-box" id="inspect-diff">Select a commit from the graph to inspect changed files and full diff patch.</pre>
             </div>
           </div>
@@ -1082,8 +1180,8 @@
         <!-- Banner Metrics (Matching Screenshot 3) -->
         <div class="timeline-banner">
           <div>
-            <div style="font-size:1.35rem; font-weight:800; letter-spacing:-0.01em;">Activity Timeline</div>
-            <div style="font-size:0.8rem; color:var(--text-dim);">Continuous multi-agent developer timeline & line activity</div>
+            <div style="font-size:1.15rem; font-weight:800; letter-spacing:-0.01em;">Activity Timeline</div>
+            <div style="font-size:0.75rem; color:var(--text-dim);">Continuous multi-agent developer timeline & line activity</div>
           </div>
           <div class="timeline-metrics">
             <div class="tl-metric-item">
@@ -1175,7 +1273,7 @@
           <div class="card-header-flex">
             <div>
               <div class="card-title">Development Checkpoints</div>
-              <div style="font-size:0.8rem; color:var(--text-dim);">Milestone markers recorded across branches and tasks</div>
+              <div style="font-size:0.75rem; color:var(--text-dim);">Milestone markers recorded across branches and tasks</div>
             </div>
             <button onclick="promptCheckpoint()">+ Record Checkpoint</button>
           </div>
@@ -1194,7 +1292,7 @@
           <div class="card-header-flex">
             <div>
               <div class="card-title">Recorded Verification Evidence</div>
-              <div style="font-size:0.8rem; color:var(--text-dim);">Test passes, builds, and CI runs correlated to commits</div>
+              <div style="font-size:0.75rem; color:var(--text-dim);">Test passes, builds, and CI runs correlated to commits</div>
             </div>
             <button onclick="promptAttachEvidence()">+ Attach Evidence</button>
           </div>
@@ -1213,7 +1311,7 @@
           <div class="card-header-flex">
             <div>
               <div class="card-title">Generated Release & Activity Reports</div>
-              <div style="font-size:0.8rem; color:var(--text-dim);">Self-contained, zero-CDN HTML reports ready for sharing</div>
+              <div style="font-size:0.75rem; color:var(--text-dim);">Self-contained, zero-CDN HTML reports ready for sharing</div>
             </div>
             <button class="btn-cyan" onclick="generateReportNow()">Generate New Report</button>
           </div>
@@ -1229,7 +1327,7 @@
       <!-- ========================================================= -->
       <div id="view-events" class="view-panel">
         <div class="content-card">
-          <div class="card-title" style="margin-bottom:1rem;">Append-Only SQLite Event Store (.devtrail/state.db)</div>
+          <div class="card-title" style="margin-bottom:0.85rem;">Append-Only SQLite Event Store (.devtrail/state.db)</div>
           <table>
             <thead><tr><th>Timestamp</th><th>Type</th><th>Source</th><th>Branch / SHA</th><th>Attribution</th><th>Payload</th></tr></thead>
             <tbody id="raw-events-body"></tbody>
@@ -1242,25 +1340,25 @@
       <!-- ========================================================= -->
       <div id="view-settings" class="view-panel">
         <!-- Structured Quick Overview Cards -->
-        <div class="stat-grid" style="margin-bottom:1.25rem;">
+        <div class="stat-grid" style="margin-bottom:1rem;">
           <div class="stat-card">
             <div class="stat-label">Project Name</div>
-            <div class="stat-val" id="cfg-proj-name" style="font-size:1.3rem;">DevTrail</div>
+            <div class="stat-val" id="cfg-proj-name" style="font-size:1.2rem;">DevTrail</div>
             <div class="stat-desc" id="cfg-def-branch">Default: main</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Network Privacy Policy</div>
-            <div class="stat-val" style="font-size:1.3rem; color:var(--emerald);">Disabled</div>
+            <div class="stat-val" style="font-size:1.2rem; color:var(--emerald);">Disabled</div>
             <div class="stat-desc">Zero telemetry, local-only</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Secret Redaction</div>
-            <div class="stat-val" style="font-size:1.3rem; color:var(--emerald);">Active</div>
+            <div class="stat-val" style="font-size:1.2rem; color:var(--emerald);">Active</div>
             <div class="stat-desc">Filters tokens, keys & auth</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Database Engine</div>
-            <div class="stat-val" style="font-size:1.3rem; color:var(--cyan);">SQLite WAL</div>
+            <div class="stat-val" style="font-size:1.2rem; color:var(--cyan);">SQLite WAL</div>
             <div class="stat-desc">.devtrail/state.db</div>
           </div>
         </div>
@@ -1269,7 +1367,7 @@
         <div class="ide-window">
           <div class="ide-header">
             <div class="ide-tabs">
-              <div class="traffic-lights" style="margin-right:0.75rem;">
+              <div class="traffic-lights" style="margin-right:0.5rem;">
                 <span class="traffic-dot dot-red"></span>
                 <span class="traffic-dot dot-yellow"></span>
                 <span class="traffic-dot dot-green"></span>
@@ -1278,9 +1376,9 @@
               <div class="ide-tab" id="tab-btn-schema" onclick="switchConfigTab('schema')">⚙️ Visual Schema Form</div>
             </div>
             <div class="ide-actions">
-              <input type="text" id="config-search" class="search-input" style="width:160px; padding:0.25rem 0.5rem;" placeholder="Filter keys..." oninput="filterConfigText()">
-              <button onclick="copyConfig()" style="padding:0.3rem 0.65rem; font-size:0.75rem;">📋 Copy YAML</button>
-              <button onclick="downloadConfig()" style="padding:0.3rem 0.65rem; font-size:0.75rem;">💾 Download</button>
+              <input type="text" id="config-search" class="search-input" style="width:140px; padding:0.2rem 0.45rem;" placeholder="Filter keys..." oninput="filterConfigText()">
+              <button onclick="copyConfig()" style="padding:0.25rem 0.55rem; font-size:0.72rem;">📋 Copy YAML</button>
+              <button onclick="downloadConfig()" style="padding:0.25rem 0.55rem; font-size:0.72rem;">💾 Download</button>
             </div>
           </div>
 
@@ -1291,39 +1389,39 @@
           </div>
 
           <!-- Tab 2: Visual Schema Form -->
-          <div id="config-pane-schema" style="display:none; padding:1.5rem; overflow-y:auto; height:560px;">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+          <div id="config-pane-schema" style="display:none; padding:1.25rem; overflow-y:auto; height:540px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
               <div class="content-card" style="margin:0;">
                 <div class="card-title">Project & Targets</div>
-                <div style="font-size:0.82rem; margin-top:0.75rem;">
-                  <div style="margin-bottom:0.5rem;"><strong>Project Name:</strong> DevTrail</div>
-                  <div style="margin-bottom:0.5rem;"><strong>Default Branch:</strong> main</div>
-                  <div style="margin-bottom:0.5rem;"><strong>Timezone:</strong> UTC</div>
+                <div style="font-size:0.78rem; margin-top:0.65rem;">
+                  <div style="margin-bottom:0.4rem;"><strong>Project Name:</strong> DevTrail</div>
+                  <div style="margin-bottom:0.4rem;"><strong>Default Branch:</strong> main</div>
+                  <div style="margin-bottom:0.4rem;"><strong>Timezone:</strong> UTC</div>
                   <div><strong>Target Branches:</strong> main, develop</div>
                 </div>
               </div>
               <div class="content-card" style="margin:0;">
                 <div class="card-title">Privacy Enforcer</div>
-                <div style="font-size:0.82rem; margin-top:0.75rem;">
-                  <div style="margin-bottom:0.5rem;"><strong>Network Access:</strong> <span class="badge badge-green">DISABLED</span></div>
-                  <div style="margin-bottom:0.5rem;"><strong>Secret Redaction:</strong> <span class="badge badge-green">ENABLED</span></div>
-                  <div style="margin-bottom:0.5rem;"><strong>Include Full Diffs:</strong> false</div>
+                <div style="font-size:0.78rem; margin-top:0.65rem;">
+                  <div style="margin-bottom:0.4rem;"><strong>Network Access:</strong> <span class="badge badge-green">DISABLED</span></div>
+                  <div style="margin-bottom:0.4rem;"><strong>Secret Redaction:</strong> <span class="badge badge-green">ENABLED</span></div>
+                  <div style="margin-bottom:0.4rem;"><strong>Include Full Diffs:</strong> false</div>
                   <div><strong>Include Agent Transcripts:</strong> false</div>
                 </div>
               </div>
               <div class="content-card" style="margin:0;">
                 <div class="card-title">Storage & Directories</div>
-                <div style="font-size:0.82rem; margin-top:0.75rem;">
-                  <div style="margin-bottom:0.5rem;"><strong>SQLite Database:</strong> <code>.devtrail/state.db</code></div>
-                  <div style="margin-bottom:0.5rem;"><strong>Reports Directory:</strong> <code>.devtrail/reports/</code></div>
+                <div style="font-size:0.78rem; margin-top:0.65rem;">
+                  <div style="margin-bottom:0.4rem;"><strong>SQLite Database:</strong> <code>.devtrail/state.db</code></div>
+                  <div style="margin-bottom:0.4rem;"><strong>Reports Directory:</strong> <code>.devtrail/reports/</code></div>
                   <div><strong>Events Directory:</strong> <code>.devtrail/events/</code></div>
                 </div>
               </div>
               <div class="content-card" style="margin:0;">
                 <div class="card-title">Automated Schedules</div>
-                <div style="font-size:0.82rem; margin-top:0.75rem;">
-                  <div style="margin-bottom:0.5rem;"><strong>Daily Activity:</strong> Every day at 18:00 UTC</div>
-                  <div style="margin-bottom:0.5rem;"><strong>Weekly Summary:</strong> Friday at 17:00 UTC</div>
+                <div style="font-size:0.78rem; margin-top:0.65rem;">
+                  <div style="margin-bottom:0.4rem;"><strong>Daily Activity:</strong> Every day at 18:00 UTC</div>
+                  <div style="margin-bottom:0.4rem;"><strong>Weekly Summary:</strong> Friday at 17:00 UTC</div>
                   <div><strong>Release Triggers:</strong> On merge to main & release_tag</div>
                 </div>
               </div>
@@ -1352,27 +1450,27 @@
   <div class="drawer" id="task-drawer">
     <div class="drawer-header">
       <span class="badge badge-cyan" id="drawer-id">DT-0000</span>
-      <button onclick="closeDrawer()" style="padding:0.25rem 0.6rem;">✕</button>
+      <button onclick="closeDrawer()" style="padding:0.2rem 0.5rem;">✕</button>
     </div>
     <div class="drawer-body">
-      <h2 id="drawer-title" style="font-size:1.2rem; font-weight:800; margin-bottom:0.75rem;">Title</h2>
-      <div style="margin-bottom:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <h2 id="drawer-title" style="font-size:1.05rem; font-weight:800; margin-bottom:0.65rem;">Title</h2>
+      <div style="margin-bottom:0.85rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
         <span class="badge badge-purple" id="drawer-provider">Claude</span>
         <span class="badge badge-green" id="drawer-status">in_progress</span>
       </div>
 
-      <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.35rem;">Objective</div>
-      <p id="drawer-obj" style="font-size:0.88rem; color:var(--text-main); margin-bottom:1.2rem; line-height:1.5;"></p>
+      <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.3rem;">Objective</div>
+      <p id="drawer-obj" style="font-size:0.82rem; color:var(--text-main); margin-bottom:1rem; line-height:1.5;"></p>
 
-      <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.35rem;">Development Notes</div>
-      <pre id="drawer-notes" style="background:#090d16; padding:0.85rem; border-radius:8px; font-size:0.8rem; margin-bottom:1.2rem; white-space:pre-wrap; font-family:var(--font-mono); color:var(--cyan);"></pre>
+      <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.3rem;">Development Notes</div>
+      <pre id="drawer-notes" style="background:#090d16; padding:0.75rem; border-radius:6px; font-size:0.75rem; margin-bottom:1rem; white-space:pre-wrap; font-family:var(--font-mono); color:var(--cyan);"></pre>
 
-      <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.35rem;">Linked Branches</div>
-      <div id="drawer-branches" style="font-family:var(--font-mono); font-size:0.82rem; margin-bottom:1.5rem;"></div>
+      <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.3rem;">Linked Branches</div>
+      <div id="drawer-branches" style="font-family:var(--font-mono); font-size:0.76rem; margin-bottom:1.25rem;"></div>
 
-      <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.5rem;">AI Handoff Actions</div>
-      <button class="btn-cyan" style="width:100%; justify-content:center; margin-bottom:0.5rem;" onclick="copyHandoffFromDrawer()">⚡ Copy AI Handoff Prompt Bundle</button>
-      <div style="display:flex; gap:0.5rem;">
+      <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:0.4rem;">AI Handoff Actions</div>
+      <button class="btn-cyan" style="width:100%; justify-content:center; margin-bottom:0.45rem;" onclick="copyHandoffFromDrawer()">⚡ Copy AI Handoff Prompt Bundle</button>
+      <div style="display:flex; gap:0.45rem;">
         <button style="flex:1;" onclick="updateTaskStatus('review')">Mark Review</button>
         <button style="flex:1;" onclick="updateTaskStatus('verified')">Mark Verified</button>
       </div>
@@ -1382,9 +1480,9 @@
   <!-- NEW TASK MODAL -->
   <div class="modal-overlay" id="task-modal">
     <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-        <div style="font-size:1.15rem; font-weight:800;">Create DevTrail Task</div>
-        <button onclick="closeNewTaskModal()" style="padding:0.2rem 0.5rem;">✕</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div style="font-size:1.05rem; font-weight:800;">Create DevTrail Task</div>
+        <button onclick="closeNewTaskModal()" style="padding:0.2rem 0.45rem;">✕</button>
       </div>
       <div class="form-group">
         <label class="form-label">Task Type</label>
@@ -1403,7 +1501,7 @@
         <label class="form-label">AI Provider</label>
         <input type="text" class="form-input" id="task-form-provider" value="Claude">
       </div>
-      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem;">
+      <div style="display:flex; justify-content:flex-end; gap:0.45rem; margin-top:1.25rem;">
         <button onclick="closeNewTaskModal()">Cancel</button>
         <button class="btn-emerald" onclick="submitNewTask()">Create Task</button>
       </div>
@@ -1417,19 +1515,19 @@
     let commitNodes = [];
     let rawConfigYaml = "";
 
-    // View Switching
-    function switchView(viewId) {
+    // Smooth Navigation Switching (NO layout jump!)
+    function switchNav(viewId) {
       document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
       const target = document.getElementById('view-' + viewId);
       if (target) {
         target.classList.add('active');
-        // Reset viewport scroll position cleanly
-        document.getElementById('main-viewport').scrollTop = 0;
       }
 
-      event.currentTarget.classList.add('active');
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
 
       if (viewId === 'graph') loadGitGraph();
       if (viewId === 'timeline') loadTimeline();
@@ -1492,7 +1590,7 @@
         allTasks = await res.json() || [];
 
         document.getElementById('ov-tasks').innerText = allTasks.length;
-        document.getElementById('gauge-tasks-val').innerText = allTasks.length;
+        document.getElementById('gauge-tasks-val').textContent = allTasks.length;
         document.getElementById('tl-tasks-count').innerText = allTasks.length;
 
         loadKanban();
@@ -1575,17 +1673,17 @@
 
         rowsEl.innerHTML = commitNodes.map((n, idx) => {
           const laneColor = railColors[n.lane % railColors.length];
-          const dotX = 20 + (n.lane * 22);
+          const dotX = 18 + (n.lane * 20);
 
           const svgLine = `
-            <svg style="position:absolute; inset:0; width:100%; height:36px; pointer-events:none;">
-              <line x1="${dotX}" y1="0" x2="${dotX}" y2="36" stroke="${laneColor}" stroke-width="2.5" />
-              <circle cx="${dotX}" cy="18" r="6" fill="${laneColor}" stroke="#090d16" stroke-width="2.5" />
+            <svg style="position:absolute; inset:0; width:100%; height:32px; pointer-events:none;">
+              <line x1="${dotX}" y1="0" x2="${dotX}" y2="32" stroke="${laneColor}" stroke-width="2.5" />
+              <circle cx="${dotX}" cy="16" r="5" fill="${laneColor}" stroke="#090c13" stroke-width="2" />
             </svg>
           `;
 
           const refsPill = n.refs && n.refs.length
-            ? `<span class="badge badge-cyan" style="font-size:0.65rem; margin-right:6px;">${n.refs.join(', ')}</span>`
+            ? `<span class="badge badge-cyan" style="font-size:0.62rem; margin-right:4px;">${n.refs.join(', ')}</span>`
             : '';
 
           return `
@@ -1627,7 +1725,7 @@
         // Changed Files List
         const filesEl = document.getElementById('inspect-files');
         if (data.changed_files && data.changed_files.length) {
-          filesEl.innerHTML = data.changed_files.map(f => `<div style="padding:0.2rem 0;">📁 ${escapeHtml(f)}</div>`).join('');
+          filesEl.innerHTML = data.changed_files.map(f => `<div style="padding:0.18rem 0;">📁 ${escapeHtml(f)}</div>`).join('');
         } else {
           filesEl.innerHTML = '<div style="color:var(--text-dim);">No file list recorded</div>';
         }
@@ -1842,7 +1940,7 @@
             <td>${new Date(r.generated_at).toLocaleString()}</td>
             <td>
               <a href="/reports/${r.file_path ? r.file_path.split('/').pop() : 'activity-latest.html'}" target="_blank">
-                <button style="padding:0.25rem 0.6rem; font-size:0.75rem;">View HTML ↗</button>
+                <button style="padding:0.2rem 0.5rem; font-size:0.72rem;">View HTML ↗</button>
               </a>
             </td>
           </tr>
@@ -1861,7 +1959,7 @@
             <td>${e.source}</td>
             <td><code>${e.branch || ''} ${e.commit_sha ? e.commit_sha.slice(0, 7) : ''}</code></td>
             <td><span class="badge badge-cyan">${e.attribution_level || 'system'}</span></td>
-            <td><pre style="font-size:0.72rem; font-family:var(--font-mono);">${escapeHtml(e.payload_json || '')}</pre></td>
+            <td><pre style="font-size:0.7rem; font-family:var(--font-mono);">${escapeHtml(e.payload_json || '')}</pre></td>
           </tr>
         `).join('');
       } catch (err) { console.error(err); }
@@ -1872,15 +1970,15 @@
         const res = await fetch('/api/doctor');
         const data = await res.json();
         document.getElementById('doctor-results').innerHTML = `
-          <div style="margin-bottom:1.5rem; display:flex; align-items:center; gap:0.75rem;">
+          <div style="margin-bottom:1.25rem; display:flex; align-items:center; gap:0.65rem;">
             <span style="font-weight:700;">Diagnostic Health:</span>
-            <span class="badge ${data.overall_status === 'HEALTHY' ? 'badge-green' : 'badge-amber'}" style="font-size:0.8rem; padding:0.3rem 0.8rem;">${data.overall_status}</span>
+            <span class="badge ${data.overall_status === 'HEALTHY' ? 'badge-green' : 'badge-amber'}" style="font-size:0.75rem; padding:0.25rem 0.65rem;">${data.overall_status}</span>
           </div>
           ${data.items.map(i => `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 0; border-bottom:1px solid var(--border-subtle);">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid var(--border-subtle);">
               <div>
                 <strong>${i.name}</strong>: ${i.message}
-                ${i.detail ? '<div style="color:var(--text-dim); font-size:0.78rem; margin-top:0.25rem;">' + i.detail + '</div>' : ''}
+                ${i.detail ? '<div style="color:var(--text-dim); font-size:0.72rem; margin-top:0.2rem;">' + i.detail + '</div>' : ''}
               </div>
               <span class="badge ${i.status === 'OK' ? 'badge-green' : (i.status === 'WARN' ? 'badge-amber' : 'badge-rose')}">${i.status}</span>
             </div>
@@ -1973,7 +2071,7 @@
         const rep = await res.json();
         alert("Report generated successfully: " + rep.title);
         await refreshData();
-        switchView('reports');
+        switchNav('reports');
       } catch (err) {
         alert("Failed to generate report: " + err);
       }
@@ -1986,7 +2084,6 @@
       for (let i = 0; i < totalCells; i++) {
         const cell = document.createElement('div');
         cell.className = 'heatmap-cell';
-        // Seed a realistic punchcard activity pattern
         if ((i > 280 && i < 330) || (i % 9 === 0) || (i % 13 === 0)) {
           const lvl = ((i * 7) % 4) + 1;
           cell.classList.add('l' + lvl);
