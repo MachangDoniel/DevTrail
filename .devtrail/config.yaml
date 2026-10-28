@@ -1,0 +1,67 @@
+version: 1
+project:
+    name: DevTrail
+    default_branch: main
+    timezone: UTC
+    target_branches:
+        - main
+        - develop
+storage:
+    database: .devtrail/state.db
+    reports_dir: .devtrail/reports
+    events_dir: .devtrail/events
+privacy:
+    network_access: disabled
+    include_full_diffs: false
+    include_uncommitted_diff: false
+    include_agent_transcripts: false
+    include_source_contents: false
+    redact_secrets: true
+reports:
+    archive: true
+    update_latest: true
+    defaults:
+        activity_branch: current
+        comparison_base: default
+        include:
+            - commits
+            - features
+            - branches
+            - tests
+            - build_evidence
+            - checkpoints
+        ai_summary: optional
+    schedules:
+        - name: daily-activity
+          enabled: true
+          frequency: daily
+          at: "18:00"
+          type: activity
+          window: previous_calendar_day
+          catch_up: run_once
+        - name: weekly-summary
+          enabled: true
+          frequency: weekly
+          at: "17:00"
+          day: friday
+          type: activity
+          window: previous_calendar_week
+          catch_up: run_once
+    triggers:
+        - name: main-merges
+          enabled: true
+          event: merge
+          target: main
+          report_type: release
+          mode: integration
+          debounce_seconds: 30
+        - name: release-tags
+          enabled: true
+          event: release_tag
+          report_type: release
+          mode: versioned_release
+output:
+    formats:
+        - html
+    archive: true
+    update_latest: true

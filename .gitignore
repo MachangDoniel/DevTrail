@@ -1,0 +1,11 @@
+# Compiled binary
+devtrail
+
+# DevTrail local data (private)
+.devtrail/state.db
+.devtrail/state.db-*
+.devtrail/reports/
+.devtrail/cache/
+.devtrail/logs/
+.devtrail/secrets/
+

@@ -168,7 +168,9 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 		CreatedAt:      time.Now().UTC(),
 	}
 	if e.Store != nil {
-		_ = e.Store.CreateReport(reportRecord)
+		if err := e.Store.CreateReport(reportRecord); err != nil {
+			return nil, "", fmt.Errorf("failed to store report: %w", err)
+		}
 	}
 
 	// If snapshot is requested or snapshotReason is provided
@@ -178,7 +180,7 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 		snapPath := filepath.Join(reportsDir, "snapshots", fmt.Sprintf("snapshot_%03d.html", snapNum))
 		_ = os.WriteFile(snapPath, buf.Bytes(), 0644)
 
-		_ = e.Store.CreateReportSnapshot(&core.ReportSnapshot{
+		if err := e.Store.CreateReportSnapshot(&core.ReportSnapshot{
 			ID:             uuid.NewString(),
 			ReportID:       reportRecord.ID,
 			SnapshotNumber: snapNum,
@@ -186,7 +188,9 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 			HeadSHA:        headSHA,
 			FilePath:       snapPath,
 			CreatedAt:      time.Now().UTC(),
-		})
+		}); err != nil {
+			return nil, "", fmt.Errorf("failed to store snapshot: %w", err)
+		}
 	}
 
 	return reportRecord, latestPath, nil

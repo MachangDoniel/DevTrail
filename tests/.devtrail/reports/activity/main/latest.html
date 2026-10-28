@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Report: main — DevTrail</title>
+<style>
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.7);
+  --border: rgba(255, 255, 255, 0.1);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-cyan: #38bdf8;
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  padding: 2rem 1rem;
+}
+.container { max-width: 1000px; margin: 0 auto; }
+header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+.badge-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-type { background: rgba(56, 189, 248, 0.2); color: var(--accent-cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
+.badge-clean { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-warn { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-fail { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem; }
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+  background: var(--bg-card);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.meta-item { display: flex; flex-direction: column; }
+.meta-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; }
+.meta-value { font-size: 0.95rem; font-weight: 600; font-family: var(--font-mono); }
+.section { margin-bottom: 2.5rem; }
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--accent-cyan);
+  padding-left: 0.75rem;
+}
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.commit-sha { font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 600; }
+.commit-msg { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; }
+.commit-stats { font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); }
+.ins { color: var(--accent-green); }
+.del { color: var(--accent-red); }
+.file-list { margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); }
+.evidence-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.evidence-row:last-child { border-bottom: none; }
+.warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fde68a;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+footer {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge-row">
+      <span class="badge badge-type">Activity Report</span>
+      <span class="badge badge-clean">DevTrail Evidence-Linked</span>
+      <span class="badge badge-warn">Uncommitted Changes In Working Tree</span>
+    </div>
+    <h1>Activity Report: main</h1>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Project</span>
+        <span class="meta-value">DevTrail</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Branch</span>
+        <span class="meta-value">main</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Scope (HEAD)</span>
+        <span class="meta-value">3a501f5b</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Generated At</span>
+        <span class="meta-value">2026-10-28 15:02:03 UTC</span>
+      </div>
+    </div>
+  </header>
+
+  
+  <div class="warning-box">
+    <strong>Evidence Notices:</strong>
+    <ul style="margin-left: 1.25rem; margin-top: 0.5rem;">
+      
+      <li>No test or build evidence recorded for this branch yet.</li>
+      
+    </ul>
+  </div>
+  
+
+  
+
+  <section class="section">
+    <h2 class="section-title">Commits & Evolution (1)</h2>
+    <div style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+      Total: <span class="ins">+4805</span> / <span class="del">-0</span> across 17 files.
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="commit-sha">3a501f5 &bull; Doniel Tripura</span>
+        <span style="font-size: 0.8rem; color: var(--text-secondary);">2026-10-28 20:46</span>
+      </div>
+      <div class="commit-msg">feat(core): initial DevTrail foundation and architecture</div>
+      <div class="commit-stats">
+        
+          17 files changed (<span class="ins">+4805</span>, <span class="del">-0</span>)
+        
+      </div>
+      
+      <div class="file-list">
+        
+        <div>&bull; cmd/devtrail/main.go</div>
+        
+        <div>&bull; devtrail</div>
+        
+        <div>&bull; go.mod</div>
+        
+        <div>&bull; go.sum</div>
+        
+        <div>&bull; internal/api/server.go</div>
+        
+        <div>&bull; internal/collector/git.go</div>
+        
+        <div>&bull; internal/config/config.go</div>
+        
+        <div>&bull; internal/core/models.go</div>
+        
+        <div>&bull; internal/reports/engine.go</div>
+        
+        <div>&bull; internal/reports/template.go</div>
+        
+        <div>&bull; internal/services/doctor_service.go</div>
+        
+        <div>&bull; internal/services/evidence_service.go</div>
+        
+        <div>&bull; internal/services/project_service.go</div>
+        
+        <div>&bull; internal/services/task_service.go</div>
+        
+        <div>&bull; internal/storage/db.go</div>
+        
+        <div>&bull; web/embed.go</div>
+        
+        <div>&bull; web/index.html</div>
+        
+      </div>
+      
+    </div>
+    
+  </section>
+
+  
+
+  
+
+  <footer>
+    Generated by DevTrail &bull; Local-First Developer Activity Intelligence &bull; Verified Git Evidence
+  </footer>
+</div>
+</body>
+</html>
