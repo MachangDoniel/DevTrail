@@ -479,6 +479,7 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
   margin-bottom: var(--space-4);
 }
 .alert .icon { flex-shrink: 0; margin-top: 1px; }
+.alert--warn { border-color: rgba(251, 191, 36, 0.35); background: var(--amber-bg); color: var(--amber); }
 
 .skeleton {
   background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 37%, rgba(255,255,255,0.04) 63%);
@@ -620,6 +621,40 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
   .change { grid-template-columns: 1fr; }
   .change-stats { text-align: left; }
 }
+
+/* Filter toolbar */
+.filterbar {
+  display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.filterbar .input, .filterbar .select { width: auto; min-width: 150px; flex: 0 1 auto; }
+.filterbar .grow { flex: 1 1 220px; min-width: 180px; }
+.filter-count { font-size: var(--fs-label); color: var(--text-dim); margin-left: auto; white-space: nowrap; }
+
+/* A change is a disclosure button revealing its own diff */
+.change-item { border-bottom: 1px solid rgba(255, 255, 255, 0.045); }
+.change-item:last-child { border-bottom: none; }
+.change {
+  width: 100%; border: none; background: none; color: inherit; font: inherit;
+  text-align: left; cursor: pointer;
+}
+.change[aria-expanded="true"] { background: rgba(56, 189, 248, 0.07); }
+.change-detail { padding: 0 var(--space-4) var(--space-4); }
+.change-detail[hidden] { display: none; }
+
+/* Hotspots */
+.hotspot { display: grid; grid-template-columns: 1fr 120px; gap: var(--space-3); align-items: center; }
+.hotspot + .hotspot { margin-top: var(--space-3); }
+.hotspot-path {
+  font-family: var(--font-mono); font-size: var(--fs-label);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;
+}
+.hotspot-bar { display: flex; height: 8px; border-radius: 9999px; overflow: hidden; background: var(--neutral-bg); }
+.hotspot-count { font-family: var(--font-mono); font-size: var(--fs-label); color: var(--text-dim); text-align: right; }
+@media (max-width: 640px) { .hotspot { grid-template-columns: 1fr; } .hotspot-count { text-align: left; } }
 
 /* Commit type colours, reused by badges in the digest */
 .type-feat     { background: var(--emerald-bg); color: var(--emerald); border-color: rgba(52,211,153,.3); }
@@ -1136,9 +1171,34 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
         <div id="changes-alert"></div>
         <div class="stack">
           <div class="grid grid--metrics" id="digest-metrics"></div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Who changed it</div></div>
-            <div class="card-body"><div id="digest-contributors"></div></div>
+
+          <div class="filterbar">
+            <label class="sr-only" for="f-text">Search changes</label>
+            <input type="search" class="input grow" id="f-text" placeholder="Search message or SHA…">
+            <label class="sr-only" for="f-path">Filter by file path</label>
+            <input type="search" class="input grow" id="f-path" placeholder="File path contains…">
+            <label class="sr-only" for="f-type">Filter by type</label>
+            <select class="select" id="f-type"><option value="">All types</option></select>
+            <label class="sr-only" for="f-who">Filter by author or agent</label>
+            <select class="select" id="f-who"><option value="">Everyone</option></select>
+            <button type="button" class="btn btn--sm" data-action="clear-filters">Clear</button>
+            <span class="filter-count" id="filter-count"></span>
+          </div>
+
+          <div class="grid grid--split">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Who changed it</div></div>
+              <div class="card-body"><div id="digest-contributors"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Most-changed files</div>
+                  <div class="card-sub">Cyan is people, purple is agents</div>
+                </div>
+              </div>
+              <div class="card-body"><div id="digest-hotspots"></div></div>
+            </div>
           </div>
           <div id="digest-buckets"></div>
         </div>
@@ -1793,6 +1853,7 @@ window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
    ========================================================================= */
 
 const state = {
+  digest: null,
   tasks: [],
   commits: [],
   selectedSha: null,
@@ -2030,21 +2091,24 @@ function renderChange(ch) {
   const breaking = ch.breaking ? '<span class="badge badge--danger">Breaking</span>' : '';
   const merge = ch.is_merge ? '<span class="badge badge--neutral">Merge</span>' : '';
 
-  return `<li class="change">
-    <span class="change-sha">${h(ch.short_sha)}</span>
-    <div class="change-main">
-      <div class="change-headline">${h(ch.headline || ch.subject)}</div>
-      <div class="change-meta">
-        <span class="badge ${typeClass(ch.type)}">${h(TYPE_LABEL[ch.type] || ch.type)}</span>
-        ${scope}${breaking}${merge}${agents}
-        <span>${h(formatRelative(ch))}</span>
+  return `<li class="change-item">
+    <button type="button" class="change" aria-expanded="false" data-sha="${h(ch.sha)}">
+      <span class="change-sha">${h(ch.short_sha)}</span>
+      <div class="change-main">
+        <div class="change-headline">${h(ch.headline || ch.subject)}</div>
+        <div class="change-meta">
+          <span class="badge ${typeClass(ch.type)}">${h(TYPE_LABEL[ch.type] || ch.type)}</span>
+          ${scope}${breaking}${merge}${agents}
+          <span>${h(formatRelative(ch))}</span>
+        </div>
       </div>
-    </div>
-    <div class="change-stats">
-      <span class="t-emerald">+${ch.stats.insertions}</span>
-      <span class="t-rose">−${ch.stats.deletions}</span>
-      <div class="change-files">${plural(ch.stats.files, 'file')}</div>
-    </div>
+      <div class="change-stats">
+        <span class="t-emerald">+${ch.stats.insertions}</span>
+        <span class="t-rose">−${ch.stats.deletions}</span>
+        <div class="change-files">${plural(ch.stats.files, 'file')}</div>
+      </div>
+    </button>
+    <div class="change-detail" id="detail-${h(ch.sha)}" hidden></div>
   </li>`;
 }
 
@@ -2107,6 +2171,163 @@ function renderContributors(d) {
     </div>`;
 }
 
+/** Filters currently applied to the loaded digest. */
+function currentFilters() {
+  return {
+    text: $('#f-text').value.trim().toLowerCase(),
+    path: $('#f-path').value.trim().toLowerCase(),
+    type: $('#f-type').value,
+    who: $('#f-who').value,
+  };
+}
+
+function changeMatches(ch, f) {
+  if (f.type && ch.type !== f.type) return false;
+  if (f.text) {
+    const hay = `${ch.subject} ${ch.headline} ${ch.sha}`.toLowerCase();
+    if (!hay.includes(f.text)) return false;
+  }
+  if (f.path) {
+    if (!(ch.files || []).some((file) => file.toLowerCase().includes(f.path))) return false;
+  }
+  if (f.who) {
+    const actor = (ch.agents && ch.agents.length) ? ch.agents[0] : ch.author;
+    const key = actor.is_agent ? 'agent:' + actor.agent : 'human:' + actor.name;
+    if (key !== f.who) return false;
+  }
+  return true;
+}
+
+/** Populate the type and author filters from whatever the digest contains. */
+function syncFilterOptions(d) {
+  const types = new Set();
+  const who = new Map();
+  for (const b of d.buckets) {
+    for (const ch of b.changes) {
+      types.add(ch.type);
+      const actor = (ch.agents && ch.agents.length) ? ch.agents[0] : ch.author;
+      const key = actor.is_agent ? 'agent:' + actor.agent : 'human:' + actor.name;
+      if (!who.has(key)) who.set(key, actor);
+    }
+  }
+
+  const typeSel = $('#f-type');
+  const keepType = typeSel.value;
+  typeSel.innerHTML = '<option value="">All types</option>' +
+    [...types].sort().map((t) => `<option value="${h(t)}">${h(TYPE_LABEL[t] || t)}</option>`).join('');
+  typeSel.value = [...types].includes(keepType) ? keepType : '';
+
+  const whoSel = $('#f-who');
+  const keepWho = whoSel.value;
+  whoSel.innerHTML = '<option value="">Everyone</option>' +
+    [...who.entries()].map(([k, a]) =>
+      `<option value="${h(k)}">${h(a.name)}${a.is_agent ? ' (agent)' : ''}</option>`).join('');
+  whoSel.value = [...who.keys()].includes(keepWho) ? keepWho : '';
+}
+
+/** Which files changed most, and how much of that came from an agent. */
+function renderHotspots(buckets) {
+  const files = new Map();
+  for (const b of buckets) {
+    for (const ch of b.changes) {
+      const byAgent = !!(ch.agents && ch.agents.length);
+      for (const f of ch.files || []) {
+        if (!files.has(f)) files.set(f, { total: 0, agent: 0 });
+        const rec = files.get(f);
+        rec.total++;
+        if (byAgent) rec.agent++;
+      }
+    }
+  }
+
+  const host = $('#digest-hotspots');
+  if (!files.size) {
+    host.innerHTML = emptyState('No files in range', 'Clear the filters, or widen the time range.');
+    return;
+  }
+
+  const top = [...files.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+  const max = top[0][1].total;
+
+  host.innerHTML = top.map(([file, rec]) => {
+    const human = rec.total - rec.agent;
+    const scale = (n) => (n / max) * 100;
+    return `<div class="hotspot">
+      <div>
+        <div class="hotspot-path" title="${h(file)}">${h(file)}</div>
+        <div class="hotspot-bar">
+          <div class="split-seg split-seg--human" style="width:${scale(human)}%"></div>
+          <div class="split-seg split-seg--agent" style="width:${scale(rec.agent)}%"></div>
+        </div>
+      </div>
+      <div class="hotspot-count">${plural(rec.total, 'change')}${rec.agent ? ` · ${rec.agent} AI` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+/** Re-render buckets and rollups from the cached digest under current filters. */
+function renderDigest() {
+  const d = state.digest;
+  if (!d) return;
+  const f = currentFilters();
+  const active = f.text || f.path || f.type || f.who;
+
+  const buckets = d.buckets
+    .map((b) => Object.assign({}, b, { changes: b.changes.filter((ch) => changeMatches(ch, f)) }))
+    .filter((b) => b.changes.length);
+
+  const shown = buckets.reduce((sum, b) => sum + b.changes.length, 0);
+  $('#filter-count').textContent = active
+    ? `${shown} of ${d.stats.commits} changes`
+    : plural(d.stats.commits, 'change');
+
+  renderHotspots(buckets);
+
+  const notes = (d.notes || [])
+    .map((n) => `<div class="alert alert--warn">${icon('alert', 16)}<span>${h(n)}</span></div>`)
+    .join('');
+
+  $('#digest-buckets').innerHTML = buckets.length
+    ? notes + buckets.map(renderBucket).join('')
+    : notes + `<div class="card"><div class="card-body">${
+        emptyState(active ? 'Nothing matches those filters' : 'No changes in this range',
+                   active ? 'Clear the filters to see everything again.' : 'Widen the time range, or make a commit.')
+      }</div></div>`;
+}
+
+/** Expand a change to show the files and diff it actually contains. */
+async function toggleChangeDetail(button) {
+  const sha = button.dataset.sha;
+  const panel = document.getElementById('detail-' + sha);
+  const open = button.getAttribute('aria-expanded') === 'true';
+
+  if (open) {
+    button.setAttribute('aria-expanded', 'false');
+    panel.hidden = true;
+    return;
+  }
+
+  button.setAttribute('aria-expanded', 'true');
+  panel.hidden = false;
+
+  if (panel.dataset.loaded === 'true') return;
+  panel.innerHTML = '<div class="skeleton skeleton-row"></div>';
+
+  try {
+    const d = await api.get('/api/git/commit?sha=' + encodeURIComponent(sha));
+    panel.innerHTML = `
+      <div class="inspect-section-label">Changed files</div>
+      <div class="file-list">${(d.changed_files || []).length
+        ? d.changed_files.map((f) => `<div>${h(f)}</div>`).join('')
+        : '<span class="t-dim">No files recorded</span>'}</div>
+      <div class="inspect-section-label">Patch</div>
+      <pre class="diff">${renderDiff(d.diff)}</pre>`;
+    panel.dataset.loaded = 'true';
+  } catch (err) {
+    panel.innerHTML = `<div class="alert">${icon('alert', 16)}<span>${h(err.message)}</span></div>`;
+  }
+}
+
 loaders.changes = async function () {
   clearAlert('changes-alert');
   $('#digest-buckets').innerHTML = '<div class="card"><div class="card-body"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div></div>';
@@ -2129,15 +2350,10 @@ loaders.changes = async function () {
         d.stats.commits ? `${Math.round((agentCommits / d.stats.commits) * 100)}% of changes` : '', 'purple'),
     ].join('');
 
+    state.digest = d;
     renderContributors(d);
-
-    const notes = (d.notes || [])
-      .map((n) => `<div class="alert" style="border-color:rgba(251,191,36,.35);background:var(--amber-bg);color:var(--amber)">${icon('alert', 16)}<span>${h(n)}</span></div>`)
-      .join('');
-
-    $('#digest-buckets').innerHTML = d.buckets.length
-      ? notes + d.buckets.map(renderBucket).join('')
-      : notes + `<div class="card"><div class="card-body">${emptyState('No changes in this range', 'Widen the time range, or make a commit.')}</div></div>`;
+    syncFilterOptions(d);
+    renderDigest();
   } catch (err) {
     showAlert('changes-alert', err);
     $('#digest-buckets').innerHTML = '';
@@ -2980,6 +3196,13 @@ const actions = {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
+  'clear-filters': () => {
+    $('#f-text').value = '';
+    $('#f-path').value = '';
+    $('#f-type').value = '';
+    $('#f-who').value = '';
+    renderDigest();
+  },
   'export-digest': async () => {
     const group = $('#digest-group').value;
     const days = $('#digest-range').value;
@@ -3055,6 +3278,9 @@ document.addEventListener('click', (e) => {
   const navEl = e.target.closest('.nav-item');
   if (navEl) { showView(navEl.dataset.view); return; }
 
+  const changeEl = e.target.closest('.change');
+  if (changeEl) { toggleChangeDetail(changeEl); return; }
+
   const commitEl = e.target.closest('.commit-row');
   if (commitEl) {
     $$('.commit-row').forEach((r) => r.classList.remove('is-selected'));
@@ -3085,6 +3311,8 @@ $('#ref-filter').addEventListener('input', (e) => renderRefTree(e.target.value))
 $('#config-filter').addEventListener('input', filterConfig);
 $('#event-filter').addEventListener('change', () => loaders.events());
 $('#digest-group').addEventListener('change', () => loaders.changes());
+['#f-text', '#f-path'].forEach((sel) => $(sel).addEventListener('input', renderDigest));
+['#f-type', '#f-who'].forEach((sel) => $(sel).addEventListener('change', renderDigest));
 $('#digest-range').addEventListener('change', () => loaders.changes());
 $('#btn-sync').addEventListener('click', () => refreshAll());
 

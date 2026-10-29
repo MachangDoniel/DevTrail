@@ -384,3 +384,70 @@ func TestKeyedEventsStillDeduplicate(t *testing.T) {
 		t.Fatalf("expected the keyed event to be stored once, got %d", len(events))
 	}
 }
+
+// The Changes view filters by file path and builds its hotspot chart entirely
+// from per-change `files`. If the digest stopped emitting them the UI would
+// quietly show empty hotspots and a path filter that matches nothing, so the
+// contract is pinned here.
+func TestDigestChangesCarryFilesAndAttribution(t *testing.T) {
+	h, cleanup := newTestServer(t)
+	defer cleanup()
+
+	code, body := getJSON(t, h, "/api/digest?group=week")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", code)
+	}
+	requireKeys(t, "/api/digest", body,
+		"group_by", "stats", "types", "buckets", "contributors")
+
+	buckets, ok := body["buckets"].([]interface{})
+	if !ok || len(buckets) == 0 {
+		t.Fatal("/api/digest: expected at least one bucket for the fixture commit")
+	}
+	bucket := buckets[0].(map[string]interface{})
+	requireKeys(t, "bucket", bucket, "key", "label", "stats", "types", "agents", "changes")
+
+	changes, ok := bucket["changes"].([]interface{})
+	if !ok || len(changes) == 0 {
+		t.Fatal("bucket carried no changes")
+	}
+	change := changes[0].(map[string]interface{})
+	requireKeys(t, "change", change,
+		"sha", "short_sha", "subject", "headline", "type", "timestamp", "author", "stats", "files")
+
+	if _, ok := change["files"].([]interface{}); !ok {
+		t.Error("change.files must be an array; the path filter and hotspots depend on it")
+	}
+	author, ok := change["author"].(map[string]interface{})
+	if !ok {
+		t.Fatal("change.author must be an object")
+	}
+	requireKeys(t, "change.author", author, "name", "is_agent")
+}
+
+func TestDigestRejectsUnknownGrouping(t *testing.T) {
+	h, cleanup := newTestServer(t)
+	defer cleanup()
+
+	code, _ := getJSON(t, h, "/api/digest?group=quarter")
+	if code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for an unknown grouping, got %d", code)
+	}
+}
+
+func TestSchedulesEndpointShape(t *testing.T) {
+	h, cleanup := newTestServer(t)
+	defer cleanup()
+
+	code, body := getJSON(t, h, "/api/schedules")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", code)
+	}
+	requireKeys(t, "/api/schedules", body, "schedules", "sprint")
+
+	sprint, ok := body["sprint"].(map[string]interface{})
+	if !ok {
+		t.Fatal("/api/schedules: sprint must be an object")
+	}
+	requireKeys(t, "sprint", sprint, "length_days", "prefix")
+}
