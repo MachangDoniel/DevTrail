@@ -139,9 +139,15 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 		return nil, "", fmt.Errorf("failed to render HTML: %w", err)
 	}
 
-	// Safe filesystem ID
+	// The task is part of a report's identity, so it has to be part of its path
+	// too. Without it a task-scoped report and an unscoped one for the same
+	// branch are two different reports writing the same latest.html, and each
+	// run clobbers the other.
 	safeBranchName := sanitizeFilename(branch)
 	reportsDir := filepath.Join(e.RepoDir, config.DefaultDirName, "reports", "activity", safeBranchName)
+	if taskID != "" {
+		reportsDir = filepath.Join(reportsDir, sanitizeFilename(taskID))
+	}
 	if err := os.MkdirAll(filepath.Join(reportsDir, "snapshots"), 0755); err != nil {
 		return nil, "", err
 	}
@@ -151,7 +157,13 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 		return nil, "", err
 	}
 
-	// Record report entry in DB
+	// An activity report for a given branch and task always rewrites the same
+	// latest.html, so it is one logical report that gets regenerated. Reuse its
+	// row rather than inserting a new one on every run: inserting meant the
+	// reports table grew without bound, every row pointing at the same file,
+	// and — because the row was always new — its snapshot archive always looked
+	// empty, so every snapshot was written as snapshot_001.html on top of the
+	// last one.
 	reportRecord := &core.Report{
 		ID:             uuid.NewString(),
 		ProjectID:      "default",
@@ -167,18 +179,33 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 		ProfileVersion: 1,
 		CreatedAt:      time.Now().UTC(),
 	}
+
 	if e.Store != nil {
-		if err := e.Store.CreateReport(reportRecord); err != nil {
+		existing, err := e.Store.FindReportByTarget("default", core.ReportTypeActivity, branch, taskID)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to look up report: %w", err)
+		}
+		if existing != nil {
+			reportRecord.ID = existing.ID
+			reportRecord.CreatedAt = existing.CreatedAt
+			if err := e.Store.UpdateReport(reportRecord); err != nil {
+				return nil, "", fmt.Errorf("failed to update report: %w", err)
+			}
+		} else if err := e.Store.CreateReport(reportRecord); err != nil {
 			return nil, "", fmt.Errorf("failed to store report: %w", err)
 		}
 	}
 
-	// If snapshot is requested or snapshotReason is provided
+	// Archive an immutable copy when a reason was given.
 	if snapshotReason != "" && e.Store != nil {
-		existingSnapshots, _ := e.Store.ListSnapshots(reportRecord.ID)
-		snapNum := len(existingSnapshots) + 1
+		snapNum, err := e.Store.NextSnapshotNumber(reportRecord.ID)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to number snapshot: %w", err)
+		}
 		snapPath := filepath.Join(reportsDir, "snapshots", fmt.Sprintf("snapshot_%03d.html", snapNum))
-		_ = os.WriteFile(snapPath, buf.Bytes(), 0644)
+		if err := os.WriteFile(snapPath, buf.Bytes(), 0644); err != nil {
+			return nil, "", fmt.Errorf("failed to write snapshot: %w", err)
+		}
 
 		if err := e.Store.CreateReportSnapshot(&core.ReportSnapshot{
 			ID:             uuid.NewString(),
@@ -190,6 +217,12 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 			CreatedAt:      time.Now().UTC(),
 		}); err != nil {
 			return nil, "", fmt.Errorf("failed to store snapshot: %w", err)
+		}
+	}
+
+	if e.Store != nil {
+		if snaps, err := e.Store.ListSnapshots(reportRecord.ID); err == nil {
+			reportRecord.Snapshots = snaps
 		}
 	}
 

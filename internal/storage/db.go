@@ -802,3 +802,66 @@ func (d *DB) MarkScheduleRun(name string, ranAt, nextRun time.Time) error {
 	)
 	return err
 }
+
+// FindReportByTarget returns the existing report row for a logical report
+// target, or nil when there is none.
+//
+// An activity report always writes the same latest.html for a given branch and
+// task, so it is one logical report that is regenerated — not a new report each
+// time. Reusing the row is what lets snapshots accumulate underneath it.
+func (d *DB) FindReportByTarget(projectID, reportType, headRef, taskID string) (*core.Report, error) {
+	query := `
+	SELECT id, project_id, report_type, title, status,
+	       COALESCE(base_ref, ''), COALESCE(head_ref, ''),
+	       COALESCE(base_sha, ''), COALESCE(head_sha, ''),
+	       COALESCE(task_id, ''), file_path, profile_version,
+	       COALESCE(warnings_json, ''), created_at
+	FROM reports
+	WHERE project_id = ? AND report_type = ?
+	  AND COALESCE(head_ref, '') = ? AND COALESCE(task_id, '') = ?
+	ORDER BY created_at ASC
+	LIMIT 1
+	`
+	var r core.Report
+	err := d.conn.QueryRow(query, projectID, reportType, headRef, taskID).Scan(
+		&r.ID, &r.ProjectID, &r.ReportType, &r.Title, &r.Status,
+		&r.BaseRef, &r.HeadRef, &r.BaseSHA, &r.HeadSHA,
+		&r.TaskID, &r.FilePath, &r.ProfileVersion, &r.WarningsJSON, &r.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+// UpdateReport refreshes a regenerated report in place.
+func (d *DB) UpdateReport(r *core.Report) error {
+	_, err := d.conn.Exec(`
+		UPDATE reports
+		SET title = ?, status = ?, base_ref = ?, head_ref = ?, base_sha = ?, head_sha = ?,
+		    task_id = ?, file_path = ?, profile_version = ?, warnings_json = ?
+		WHERE id = ?`,
+		r.Title, r.Status, r.BaseRef, r.HeadRef, r.BaseSHA, r.HeadSHA,
+		r.TaskID, r.FilePath, r.ProfileVersion, r.WarningsJSON, r.ID,
+	)
+	return err
+}
+
+// NextSnapshotNumber returns the next sequence number for a report's archive.
+//
+// Counting existing rows would reuse a number after one is deleted and
+// silently overwrite that file, so take the maximum instead.
+func (d *DB) NextSnapshotNumber(reportID string) (int, error) {
+	var max int
+	err := d.conn.QueryRow(
+		`SELECT COALESCE(MAX(snapshot_number), 0) FROM report_snapshots WHERE report_id = ?`,
+		reportID,
+	).Scan(&max)
+	if err != nil {
+		return 0, err
+	}
+	return max + 1, nil
+}

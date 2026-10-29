@@ -451,3 +451,46 @@ func TestSchedulesEndpointShape(t *testing.T) {
 	}
 	requireKeys(t, "sprint", sprint, "length_days", "prefix")
 }
+
+// A report whose file has been deleted must not advertise a link that 404s.
+// The UI renders "File missing" when web_url is empty.
+func TestReportWithMissingFileHasNoWebURL(t *testing.T) {
+	h, cleanup := newTestServer(t)
+	defer cleanup()
+
+	// Generate a real report, then delete the file behind it.
+	code, created := postJSON(t, h, "/api/reports/generate", `{"type":"activity","branch":"main"}`)
+	if code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d (%v)", code, created)
+	}
+	file, _ := created["file"].(string)
+	if file == "" {
+		t.Fatal("generate did not report a file path")
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("expected the report file to exist: %v", err)
+	}
+	if created["web_url"] == "" {
+		t.Error("a report whose file exists must carry a web_url")
+	}
+
+	if err := os.Remove(file); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/reports", nil))
+
+	var list []map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("/api/reports is not a JSON array: %v", err)
+	}
+	if len(list) == 0 {
+		t.Fatal("expected at least one report row")
+	}
+	for _, r := range list {
+		if r["file_path"] == file && r["web_url"] != nil && r["web_url"] != "" {
+			t.Errorf("deleted report still advertises web_url %v", r["web_url"])
+		}
+	}
+}

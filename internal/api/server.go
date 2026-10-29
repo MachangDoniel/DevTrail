@@ -526,12 +526,17 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusOK, reportsList)
 }
 
-// reportWebURL maps an absolute report path to the path it is served at under /reports/.
-// Returns "" when the file lives outside the reports directory.
+// reportWebURL maps an absolute report path to the path it is served at under
+// /reports/. It returns "" when the file lives outside the reports directory
+// or no longer exists on disk, so the UI shows "File missing" rather than a
+// link that 404s.
 func (s *Server) reportWebURL(filePath string) string {
 	root := filepath.Join(s.RepoDir, ".devtrail", "reports")
 	rel, err := filepath.Rel(root, filePath)
 	if err != nil || strings.HasPrefix(rel, "..") {
+		return ""
+	}
+	if _, err := os.Stat(filePath); err != nil {
 		return ""
 	}
 	return "/reports/" + filepath.ToSlash(rel)
