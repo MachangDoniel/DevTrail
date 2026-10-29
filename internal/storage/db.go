@@ -275,6 +275,15 @@ func (d *DB) InsertEvent(evt *core.Event) error {
 		evt.OccurredAt = evt.ObservedAt
 	}
 
+	// idempotency_key is UNIQUE. An empty string is a real value, so every
+	// event without a key after the first would be silently dropped by
+	// INSERT OR IGNORE. SQLite treats NULLs as distinct, so store NULL
+	// instead and let keyed events (git observations) keep deduplicating.
+	var idempotencyKey interface{}
+	if evt.IdempotencyKey != "" {
+		idempotencyKey = evt.IdempotencyKey
+	}
+
 	query := `
 	INSERT OR IGNORE INTO events (
 		id, project_id, worktree_id, event_type, source, source_event_id,
@@ -284,7 +293,7 @@ func (d *DB) InsertEvent(evt *core.Event) error {
 	`
 	_, err := d.conn.Exec(query,
 		evt.ID, evt.ProjectID, evt.WorktreeID, evt.EventType, evt.Source,
-		evt.SourceEventID, evt.IdempotencyKey, evt.Branch, evt.CommitSHA,
+		evt.SourceEventID, idempotencyKey, evt.Branch, evt.CommitSHA,
 		evt.AttributionLevel, evt.AttributionProvider, evt.PayloadJSON,
 		evt.OccurredAt, evt.ObservedAt,
 	)

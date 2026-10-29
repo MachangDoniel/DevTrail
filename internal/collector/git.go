@@ -465,14 +465,17 @@ func (g *GitCollector) GetCommitDetail(sha string) (*core.CommitDetail, error) {
 		sha = "HEAD"
 	}
 
-	// 1. Get raw commit metadata
-	format := "%H|%h|%P|%an|%ae|%aI|%s|%B"
-	out, err := g.run("log", "-1", fmt.Sprintf("--format=%s", format), sha)
+	// 1. Get raw commit metadata.
+	// A "|" separator would be corrupted by any commit message containing one,
+	// so use the same unlikely field separator CommitsBetween relies on.
+	const fieldSep = "§§§"
+	format := strings.Join([]string{"%H", "%h", "%P", "%an", "%ae", "%aI", "%s", "%B"}, fieldSep)
+	out, err := g.run("log", "-1", "--format="+format, sha)
 	if err != nil {
 		return nil, err
 	}
 
-	parts := strings.Split(out, "|")
+	parts := strings.Split(out, fieldSep)
 	if len(parts) < 7 {
 		return nil, fmt.Errorf("unexpected git log format for %s", sha)
 	}
@@ -486,7 +489,7 @@ func (g *GitCollector) GetCommitDetail(sha string) (*core.CommitDetail, error) {
 	subject := parts[6]
 	message := ""
 	if len(parts) > 7 {
-		message = parts[7]
+		message = strings.TrimRight(parts[7], "\n")
 	}
 
 	// 2. Get changed files

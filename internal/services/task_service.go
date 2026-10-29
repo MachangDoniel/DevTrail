@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,18 +19,32 @@ func NewTaskService(store StorageInterface, git *collector.GitCollector) *TaskSe
 	return &TaskService{Store: store, Git: git}
 }
 
+// payload marshals an event payload. Values are escaped properly, so a note or
+// title containing quotes or newlines cannot produce invalid JSON.
+func payload(fields map[string]interface{}) string {
+	b, err := json.Marshal(fields)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
 // CreateTask creates a new task or feature item.
-func (s *TaskService) CreateTask(title, taskType, objective string, autoAttachCurrentBranch bool) (*core.Task, error) {
+func (s *TaskService) CreateTask(title, taskType, objective, aiProvider string, autoAttachCurrentBranch bool) (*core.Task, error) {
 	if taskType == "" {
 		taskType = "feature"
 	}
+	if aiProvider == "" {
+		aiProvider = "claude"
+	}
 	task := &core.Task{
-		ID:        fmt.Sprintf("DT-%04d", time.Now().Unix()%10000),
-		ProjectID: "default",
-		Title:     title,
-		TaskType:  taskType,
-		Status:    core.TaskStatusPlanned,
-		Objective: objective,
+		ID:         fmt.Sprintf("DT-%04d", time.Now().Unix()%10000),
+		ProjectID:  "default",
+		Title:      title,
+		TaskType:   taskType,
+		Status:     core.TaskStatusPlanned,
+		Objective:  objective,
+		AIProvider: aiProvider,
 	}
 
 	if autoAttachCurrentBranch && s.Git != nil {
@@ -54,7 +69,7 @@ func (s *TaskService) CreateTask(title, taskType, objective string, autoAttachCu
 		EventType:        "task_created",
 		Source:           "cli",
 		AttributionLevel: core.AttributionExplicit,
-		PayloadJSON:      fmt.Sprintf(`{"task_id":"%s","title":"%s"}`, task.ID, task.Title),
+		PayloadJSON:      payload(map[string]interface{}{"task_id": task.ID, "title": task.Title}),
 		OccurredAt:       time.Now().UTC(),
 		ObservedAt:       time.Now().UTC(),
 	})
@@ -82,7 +97,7 @@ func (s *TaskService) AttachBranch(taskID, branch string) error {
 		Source:           "cli",
 		Branch:           branch,
 		AttributionLevel: core.AttributionExplicit,
-		PayloadJSON:      fmt.Sprintf(`{"task_id":"%s","branch":"%s"}`, taskID, branch),
+		PayloadJSON:      payload(map[string]interface{}{"task_id": taskID, "branch": branch}),
 		OccurredAt:       time.Now().UTC(),
 		ObservedAt:       time.Now().UTC(),
 	})
@@ -100,7 +115,7 @@ func (s *TaskService) AddNote(taskID, note string) error {
 		EventType:        "task_note_added",
 		Source:           "cli",
 		AttributionLevel: core.AttributionExplicit,
-		PayloadJSON:      fmt.Sprintf(`{"task_id":"%s","note":"%s"}`, taskID, note),
+		PayloadJSON:      payload(map[string]interface{}{"task_id": taskID, "note": note}),
 		OccurredAt:       time.Now().UTC(),
 		ObservedAt:       time.Now().UTC(),
 	})
@@ -142,7 +157,7 @@ func (s *TaskService) RecordCheckpoint(taskID, message string) (*core.Checkpoint
 		Branch:           currBranch,
 		CommitSHA:        headSHA,
 		AttributionLevel: core.AttributionExplicit,
-		PayloadJSON:      fmt.Sprintf(`{"task_id":"%s","message":"%s"}`, taskID, message),
+		PayloadJSON:      payload(map[string]interface{}{"task_id": taskID, "message": message}),
 		OccurredAt:       time.Now().UTC(),
 		ObservedAt:       time.Now().UTC(),
 	})

@@ -36,27 +36,35 @@ const BaseHTMLTemplate = `<!DOCTYPE html>
 <title>{{.Title}} — DevTrail</title>
 <style>
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-card: rgba(30, 41, 59, 0.7);
-  --border: rgba(255, 255, 255, 0.1);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --accent-cyan: #38bdf8;
-  --accent-blue: #3b82f6;
-  --accent-green: #10b981;
-  --accent-amber: #f59e0b;
-  --accent-red: #ef4444;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* These values mirror the dashboard's tokens in web/index.html so a report
+     opened from the cockpit reads as the same product. Keep them in step. */
+  --bg-primary:   #090c13;
+  --bg-secondary: #0f1420;
+  --bg-card:      #131926;
+  --border:       rgba(255, 255, 255, 0.09);
+  --text-primary:   #f1f5f9;
+  --text-secondary: #a8b5c6;
+  --text-dim:       #8899ad;
+  --accent-cyan:    #38bdf8;
+  --accent-blue:    #60a5fa;
+  --accent-green:   #34d399;
+  --accent-amber:   #fbbf24;
+  --accent-red:     #fb7185;
+  --accent-purple:  #c084fc;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 14px;
   padding: 2rem 1rem;
+  -webkit-font-smoothing: antialiased;
 }
 .container { max-width: 1000px; margin: 0 auto; }
 header {
@@ -73,10 +81,10 @@ header {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.badge-type { background: rgba(56, 189, 248, 0.2); color: var(--accent-cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
-.badge-clean { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
-.badge-warn { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
-.badge-fail { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge--info   { background: rgba(56, 189, 248, 0.13); color: var(--accent-cyan);  border: 1px solid rgba(56, 189, 248, 0.3); }
+.badge--ok     { background: rgba(52, 211, 153, 0.13); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.3); }
+.badge--warn   { background: rgba(251, 191, 36, 0.13); color: var(--accent-amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+.badge--danger { background: rgba(251, 113, 133, 0.13); color: var(--accent-red);  border: 1px solid rgba(251, 113, 133, 0.3); }
 h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem; }
 .meta-grid {
   display: grid;
@@ -143,9 +151,9 @@ footer {
 <div class="container">
   <header>
     <div class="badge-row">
-      <span class="badge badge-type">{{.ReportType}}</span>
-      <span class="badge badge-clean">DevTrail Evidence-Linked</span>
-      {{if .WorkingTree}}<span class="badge badge-warn">{{.WorkingTree}}</span>{{end}}
+      <span class="badge badge--info">{{.ReportType}}</span>
+      <span class="badge badge--ok">DevTrail Evidence-Linked</span>
+      {{if .WorkingTree}}<span class="badge badge--warn">{{.WorkingTree}}</span>{{end}}
     </div>
     <h1>{{.Title}}</h1>
     <div class="meta-grid">
@@ -185,7 +193,7 @@ footer {
     <div class="card">
       <div class="card-header">
         <span class="commit-sha">[{{.Task.ID}}] {{.Task.Title}}</span>
-        <span class="badge badge-type">{{.Task.Status}}</span>
+        <span class="badge badge--info">{{.Task.Status}}</span>
       </div>
       {{if .Task.Objective}}<p style="margin-top:0.5rem; color: var(--text-secondary);"><strong>Objective:</strong> {{.Task.Objective}}</p>{{end}}
       {{if .Task.Notes}}<p style="margin-top:0.5rem; color: var(--text-secondary);"><strong>Notes:</strong> {{.Task.Notes}}</p>{{end}}
@@ -235,7 +243,7 @@ footer {
             Commit: {{truncate .CommitSHA 8}} &bull; {{.CreatedAt.Format "15:04:05"}} ({{.DurationMs}}ms)
           </div>
         </div>
-        <span class="badge {{if eq .Result "passed"}}badge-clean{{else}}badge-fail{{end}}">{{.Result}}</span>
+        <span class="badge {{if eq .Result "passed"}}badge--ok{{else}}badge--danger{{end}}">{{.Result}}</span>
       </div>
       {{end}}
     </div>

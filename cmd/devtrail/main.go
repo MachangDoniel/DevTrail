@@ -89,6 +89,7 @@ func init() {
 	taskCreateCmd.Flags().String("type", "feature", "Task type: feature, fix, refactor, chore")
 	taskCreateCmd.Flags().String("objective", "", "Objective or summary")
 	taskCreateCmd.Flags().Bool("attach", true, "Auto-attach current branch")
+	taskCreateCmd.Flags().String("provider", "claude", "AI provider: claude, chatgpt, gemini, copilot, local, human")
 	taskAttachCmd.Flags().String("branch", "", "Branch to attach (default: current)")
 
 	// Checkpoint flags
@@ -469,9 +470,10 @@ var taskCreateCmd = &cobra.Command{
 		tType, _ := cmd.Flags().GetString("type")
 		objective, _ := cmd.Flags().GetString("objective")
 		attach, _ := cmd.Flags().GetBool("attach")
+		provider, _ := cmd.Flags().GetString("provider")
 
 		svc := services.NewTaskService(db, collector.NewGitCollector(repoRoot))
-		task, err := svc.CreateTask(args[0], tType, objective, attach)
+		task, err := svc.CreateTask(args[0], tType, objective, provider, attach)
 		if err != nil {
 			return fmt.Errorf("failed to create task: %w", err)
 		}

@@ -224,7 +224,7 @@ func TestHandoffPackage(t *testing.T) {
 	defer db.Close()
 
 	taskSvc := services.NewTaskService(db, collector.NewGitCollector(wd))
-	task, err := taskSvc.CreateTask("Test Handoff Feature", "feature", "Verify handoff prompt formatting", true)
+	task, err := taskSvc.CreateTask("Test Handoff Feature", "feature", "Verify handoff prompt formatting", "claude", true)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
 	}

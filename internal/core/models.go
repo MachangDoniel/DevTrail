@@ -255,6 +255,9 @@ type Report struct {
 	WarningsJSON   string           `json:"warnings_json,omitempty"`
 	CreatedAt      time.Time        `json:"created_at"`
 	Snapshots      []ReportSnapshot `json:"snapshots,omitempty"`
+	// WebURL is the path the report is served at, computed by the API layer
+	// from FilePath. It is not persisted.
+	WebURL string `json:"web_url,omitempty"`
 }
 
 // ReportSnapshot represents an immutable checkpoint of an evolving report.

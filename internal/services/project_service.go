@@ -179,7 +179,7 @@ func (s *ProjectService) SyncCurrentState() error {
 		Branch:           currBranch,
 		CommitSHA:        headSHA,
 		AttributionLevel: core.AttributionVerified,
-		PayloadJSON:      fmt.Sprintf(`{"branch":"%s","head_sha":"%s"}`, currBranch, headSHA),
+		PayloadJSON:      payload(map[string]interface{}{"branch": currBranch, "head_sha": headSHA}),
 		OccurredAt:       time.Now().UTC(),
 		ObservedAt:       time.Now().UTC(),
 	}

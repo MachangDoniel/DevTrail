@@ -17,77 +17,77 @@ const (
 )
 
 type Config struct {
-	Version int            `yaml:"version"`
-	Project ProjectConfig  `yaml:"project"`
-	Storage StorageConfig  `yaml:"storage"`
-	Privacy PrivacyConfig  `yaml:"privacy"`
-	Reports ReportsConfig  `yaml:"reports"`
-	Output  OutputConfig   `yaml:"output"`
+	Version int           `yaml:"version" json:"version"`
+	Project ProjectConfig `yaml:"project" json:"project"`
+	Storage StorageConfig `yaml:"storage" json:"storage"`
+	Privacy PrivacyConfig `yaml:"privacy" json:"privacy"`
+	Reports ReportsConfig `yaml:"reports" json:"reports"`
+	Output  OutputConfig  `yaml:"output" json:"output"`
 }
 
 type ProjectConfig struct {
-	Name           string   `yaml:"name"`
-	DefaultBranch  string   `yaml:"default_branch"`
-	Timezone       string   `yaml:"timezone"`
-	TargetBranches []string `yaml:"target_branches"`
+	Name           string   `yaml:"name" json:"name"`
+	DefaultBranch  string   `yaml:"default_branch" json:"default_branch"`
+	Timezone       string   `yaml:"timezone" json:"timezone"`
+	TargetBranches []string `yaml:"target_branches" json:"target_branches"`
 }
 
 type StorageConfig struct {
-	Database   string `yaml:"database"`
-	ReportsDir string `yaml:"reports_dir"`
-	EventsDir  string `yaml:"events_dir"`
+	Database   string `yaml:"database" json:"database"`
+	ReportsDir string `yaml:"reports_dir" json:"reports_dir"`
+	EventsDir  string `yaml:"events_dir" json:"events_dir"`
 }
 
 type PrivacyConfig struct {
-	NetworkAccess           string `yaml:"network_access"`
-	IncludeFullDiffs        bool   `yaml:"include_full_diffs"`
-	IncludeUncommittedDiff  bool   `yaml:"include_uncommitted_diff"`
-	IncludeAgentTranscripts bool   `yaml:"include_agent_transcripts"`
-	IncludeSourceContents   bool   `yaml:"include_source_contents"`
-	RedactSecrets           bool   `yaml:"redact_secrets"`
+	NetworkAccess           string `yaml:"network_access" json:"network_access"`
+	IncludeFullDiffs        bool   `yaml:"include_full_diffs" json:"include_full_diffs"`
+	IncludeUncommittedDiff  bool   `yaml:"include_uncommitted_diff" json:"include_uncommitted_diff"`
+	IncludeAgentTranscripts bool   `yaml:"include_agent_transcripts" json:"include_agent_transcripts"`
+	IncludeSourceContents   bool   `yaml:"include_source_contents" json:"include_source_contents"`
+	RedactSecrets           bool   `yaml:"redact_secrets" json:"redact_secrets"`
 }
 
 type ReportsConfig struct {
-	Archive      bool             `yaml:"archive"`
-	UpdateLatest bool             `yaml:"update_latest"`
-	Defaults     ReportDefaults   `yaml:"defaults"`
-	Schedules    []ScheduleConfig `yaml:"schedules"`
-	Triggers     []TriggerConfig  `yaml:"triggers"`
+	Archive      bool             `yaml:"archive" json:"archive"`
+	UpdateLatest bool             `yaml:"update_latest" json:"update_latest"`
+	Defaults     ReportDefaults   `yaml:"defaults" json:"defaults"`
+	Schedules    []ScheduleConfig `yaml:"schedules" json:"schedules"`
+	Triggers     []TriggerConfig  `yaml:"triggers" json:"triggers"`
 }
 
 type ReportDefaults struct {
-	ActivityBranch string   `yaml:"activity_branch"`
-	ComparisonBase string   `yaml:"comparison_base"`
-	Include        []string `yaml:"include"`
-	AISummary      string   `yaml:"ai_summary"`
+	ActivityBranch string   `yaml:"activity_branch" json:"activity_branch"`
+	ComparisonBase string   `yaml:"comparison_base" json:"comparison_base"`
+	Include        []string `yaml:"include" json:"include"`
+	AISummary      string   `yaml:"ai_summary" json:"ai_summary"`
 }
 
 type ScheduleConfig struct {
-	Name      string `yaml:"name"`
-	Enabled   bool   `yaml:"enabled"`
-	Frequency string `yaml:"frequency"`
-	At        string `yaml:"at,omitempty"`
-	Day       string `yaml:"day,omitempty"`
-	Month     string `yaml:"month,omitempty"`
-	Type      string `yaml:"type"`
-	Window    string `yaml:"window"`
-	CatchUp   string `yaml:"catch_up,omitempty"`
+	Name      string `yaml:"name" json:"name"`
+	Enabled   bool   `yaml:"enabled" json:"enabled"`
+	Frequency string `yaml:"frequency" json:"frequency"`
+	At        string `yaml:"at,omitempty" json:"at,omitempty"`
+	Day       string `yaml:"day,omitempty" json:"day,omitempty"`
+	Month     string `yaml:"month,omitempty" json:"month,omitempty"`
+	Type      string `yaml:"type" json:"type"`
+	Window    string `yaml:"window" json:"window"`
+	CatchUp   string `yaml:"catch_up,omitempty" json:"catch_up,omitempty"`
 }
 
 type TriggerConfig struct {
-	Name            string `yaml:"name"`
-	Enabled         bool   `yaml:"enabled"`
-	Event           string `yaml:"event"`
-	Target          string `yaml:"target,omitempty"`
-	ReportType      string `yaml:"report_type"`
-	Mode            string `yaml:"mode,omitempty"`
-	DebounceSeconds int    `yaml:"debounce_seconds,omitempty"`
+	Name            string `yaml:"name" json:"name"`
+	Enabled         bool   `yaml:"enabled" json:"enabled"`
+	Event           string `yaml:"event" json:"event"`
+	Target          string `yaml:"target,omitempty" json:"target,omitempty"`
+	ReportType      string `yaml:"report_type" json:"report_type"`
+	Mode            string `yaml:"mode,omitempty" json:"mode,omitempty"`
+	DebounceSeconds int    `yaml:"debounce_seconds,omitempty" json:"debounce_seconds,omitempty"`
 }
 
 type OutputConfig struct {
-	Formats      []string `yaml:"formats"`
-	Archive      bool     `yaml:"archive"`
-	UpdateLatest bool     `yaml:"update_latest"`
+	Formats      []string `yaml:"formats" json:"formats"`
+	Archive      bool     `yaml:"archive" json:"archive"`
+	UpdateLatest bool     `yaml:"update_latest" json:"update_latest"`
 }
 
 // DefaultConfig generates a ready-to-use configuration for a given project name.

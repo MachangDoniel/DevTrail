@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/donieltripura/devtrail/internal/collector"
@@ -58,9 +57,12 @@ func (s *EvidenceService) Record(evType, result, command, commitSHA, branch stri
 		Branch:           branch,
 		CommitSHA:        commitSHA,
 		AttributionLevel: core.AttributionVerified,
-		PayloadJSON:      fmt.Sprintf(`{"evidence_id":"%s","type":"%s","result":"%s","duration_ms":%d}`, ev.ID, ev.EvidenceType, ev.Result, ev.DurationMs),
-		OccurredAt:       time.Now().UTC(),
-		ObservedAt:       time.Now().UTC(),
+		PayloadJSON: payload(map[string]interface{}{
+			"evidence_id": ev.ID, "type": ev.EvidenceType,
+			"result": ev.Result, "duration_ms": ev.DurationMs,
+		}),
+		OccurredAt: time.Now().UTC(),
+		ObservedAt: time.Now().UTC(),
 	})
 
 	return ev, nil
