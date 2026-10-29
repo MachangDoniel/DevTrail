@@ -865,3 +865,85 @@ func (d *DB) NextSnapshotNumber(reportID string) (int, error) {
 	}
 	return max + 1, nil
 }
+
+// DuplicateReport describes a redundant report row found by FindDuplicateReports.
+type DuplicateReport struct {
+	Report   core.Report
+	KeeperID string
+}
+
+// FindDuplicateReports returns report rows that are safe to remove.
+//
+// Before reports were regenerated in place, every run inserted a new row
+// pointing at the same file, so a single logical report could be represented
+// by many rows. Two rows are redundant only when they write the same file;
+// digest reports each write their own timestamped file and are never
+// duplicates of one another, even though they share a blank head_ref.
+//
+// Within a group the keeper is the row with the most snapshots, tie-broken by
+// age. A row with its own snapshot archive is never reported as removable:
+// report_snapshots cascades on delete, so removing it would destroy that
+// archive.
+func (d *DB) FindDuplicateReports(projectID string) ([]DuplicateReport, error) {
+	rows, err := d.conn.Query(`
+		SELECT r.id, r.project_id, r.report_type, r.title, r.file_path, r.created_at,
+		       (SELECT COUNT(*) FROM report_snapshots s WHERE s.report_id = r.id)
+		FROM reports r
+		WHERE r.project_id = ?
+		ORDER BY r.file_path, r.created_at`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	type entry struct {
+		rep   core.Report
+		snaps int
+	}
+	groups := map[string][]entry{}
+	var order []string
+
+	for rows.Next() {
+		var e entry
+		if err := rows.Scan(&e.rep.ID, &e.rep.ProjectID, &e.rep.ReportType,
+			&e.rep.Title, &e.rep.FilePath, &e.rep.CreatedAt, &e.snaps); err != nil {
+			return nil, err
+		}
+		if _, seen := groups[e.rep.FilePath]; !seen {
+			order = append(order, e.rep.FilePath)
+		}
+		groups[e.rep.FilePath] = append(groups[e.rep.FilePath], e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	var out []DuplicateReport
+	for _, path := range order {
+		members := groups[path]
+		if len(members) < 2 {
+			continue
+		}
+
+		keeper := 0
+		for i, m := range members {
+			if m.snaps > members[keeper].snaps {
+				keeper = i // most snapshots wins; the slice is already oldest-first
+			}
+		}
+
+		for i, m := range members {
+			if i == keeper || m.snaps > 0 {
+				continue // never propose removing a row that owns an archive
+			}
+			out = append(out, DuplicateReport{Report: m.rep, KeeperID: members[keeper].rep.ID})
+		}
+	}
+	return out, nil
+}
+
+// DeleteReport removes a single report row by id.
+func (d *DB) DeleteReport(id string) error {
+	_, err := d.conn.Exec(`DELETE FROM reports WHERE id = ?`, id)
+	return err
+}

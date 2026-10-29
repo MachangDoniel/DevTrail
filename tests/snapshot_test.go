@@ -198,3 +198,89 @@ func TestTaskScopedReportGetsItsOwnFile(t *testing.T) {
 		t.Errorf("expected 1 snapshot in the task's own archive, got %d", len(entries))
 	}
 }
+
+// Dedupe must be conservative: it removes only rows that share a file with
+// another row AND own no snapshot archive of their own.
+func TestFindDuplicateReportsOnlyTargetsSafeRows(t *testing.T) {
+	db, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mk := func(id, path string, snaps int) {
+		t.Helper()
+		if err := db.CreateReport(&core.Report{
+			ID: id, ProjectID: "default", ReportType: core.ReportTypeActivity,
+			Title: "r", Status: "generated", FilePath: path, ProfileVersion: 1,
+		}); err != nil {
+			t.Fatal(err)
+		}
+		for n := 1; n <= snaps; n++ {
+			if err := db.CreateReportSnapshot(&core.ReportSnapshot{
+				ID: id + "-s" + string(rune('0'+n)), ReportID: id, SnapshotNumber: n,
+				TriggerReason: "r", HeadSHA: "sha", FilePath: "/tmp/s.html",
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	// Three rows share one file: one has an archive, one is bare, one has its
+	// own archive and must therefore survive despite sharing the path.
+	mk("keeper", "/r/activity/main/latest.html", 3)
+	mk("bare", "/r/activity/main/latest.html", 0)
+	mk("archived", "/r/activity/main/latest.html", 1)
+	// A row with its own file is never a duplicate.
+	mk("solo", "/r/digest/digest_week_1.html", 0)
+	mk("solo2", "/r/digest/digest_week_2.html", 0)
+
+	dupes, err := db.FindDuplicateReports("default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(dupes) != 1 {
+		ids := []string{}
+		for _, d := range dupes {
+			ids = append(ids, d.Report.ID)
+		}
+		t.Fatalf("expected exactly 1 removable row, got %d: %v", len(dupes), ids)
+	}
+	if dupes[0].Report.ID != "bare" {
+		t.Errorf("removable row = %q, want %q", dupes[0].Report.ID, "bare")
+	}
+	if dupes[0].KeeperID != "keeper" {
+		t.Errorf("keeper = %q, want the row with the most snapshots", dupes[0].KeeperID)
+	}
+}
+
+func TestDeleteReportLeavesOtherRowsAndSnapshotsIntact(t *testing.T) {
+	db, cleanup := newTestStore(t)
+	defer cleanup()
+
+	for _, id := range []string{"keep", "drop"} {
+		if err := db.CreateReport(&core.Report{
+			ID: id, ProjectID: "default", ReportType: core.ReportTypeActivity,
+			Title: "r", Status: "generated", FilePath: "/r/latest.html", ProfileVersion: 1,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.CreateReportSnapshot(&core.ReportSnapshot{
+		ID: "s1", ReportID: "keep", SnapshotNumber: 1,
+		TriggerReason: "r", HeadSHA: "sha", FilePath: "/r/s.html",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.DeleteReport("drop"); err != nil {
+		t.Fatal(err)
+	}
+
+	rows, _ := db.ListReports(core.ReportTypeActivity, 50)
+	if len(rows) != 1 || rows[0].ID != "keep" {
+		t.Fatalf("expected only the keeper to remain, got %+v", rows)
+	}
+	snaps, _ := db.ListSnapshots("keep")
+	if len(snaps) != 1 {
+		t.Errorf("the keeper's archive was damaged: %d snapshot(s)", len(snaps))
+	}
+}

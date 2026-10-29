@@ -63,6 +63,8 @@ func init() {
 	reportCmd.AddCommand(reportActivityCmd)
 	reportCmd.AddCommand(reportReleaseCmd)
 	reportCmd.AddCommand(reportListCmd)
+	reportCmd.AddCommand(reportDedupeCmd)
+	reportDedupeCmd.Flags().Bool("apply", false, "Actually remove the rows (default is a dry run)")
 	reportCmd.AddCommand(reportOpenCmd)
 
 	// Task subcommands
@@ -364,6 +366,68 @@ var reportReleaseCmd = &cobra.Command{
 		fmt.Printf("✓ Release Report generated:\n")
 		fmt.Printf("  • Title: %s\n", report.Title)
 		fmt.Printf("  • File:  %s\n", path)
+		return nil
+	},
+}
+
+var reportDedupeCmd = &cobra.Command{
+	Use:   "dedupe",
+	Short: "Remove redundant report rows left by older versions",
+	Long: `Before reports were regenerated in place, every run inserted a new row
+pointing at the same file. This removes those redundant rows.
+
+Only rows that share a file with another row are considered, and a row that
+owns a snapshot archive is never removed. Runs as a dry run unless --apply
+is given.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoRoot, err := getRepoRoot()
+		if err != nil {
+			return err
+		}
+		cfg, err := config.LoadConfig(repoRoot)
+		if err != nil {
+			return err
+		}
+		db, err := getDB(repoRoot, cfg)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		dupes, err := db.FindDuplicateReports("default")
+		if err != nil {
+			return fmt.Errorf("failed to inspect reports: %w", err)
+		}
+		if len(dupes) == 0 {
+			fmt.Println("No redundant report rows found.")
+			return nil
+		}
+
+		apply, _ := cmd.Flags().GetBool("apply")
+		verb := "Would remove"
+		if apply {
+			verb = "Removing"
+		}
+
+		fmt.Printf("%s %d redundant report row(s):\n", verb, len(dupes))
+		for _, d := range dupes {
+			fmt.Printf("  • %s  %-9s %s\n      kept instead: %s\n",
+				truncate(d.Report.ID, 8), d.Report.ReportType,
+				filepath.Base(filepath.Dir(d.Report.FilePath))+"/"+filepath.Base(d.Report.FilePath),
+				truncate(d.KeeperID, 8))
+		}
+
+		if !apply {
+			fmt.Println("\nNothing changed. Re-run with --apply to remove them.")
+			return nil
+		}
+
+		for _, d := range dupes {
+			if err := db.DeleteReport(d.Report.ID); err != nil {
+				return fmt.Errorf("failed to remove %s: %w", truncate(d.Report.ID, 8), err)
+			}
+		}
+		fmt.Printf("\nRemoved %d row(s). No report files were touched.\n", len(dupes))
 		return nil
 	},
 }
