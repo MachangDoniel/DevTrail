@@ -2304,7 +2304,7 @@ function renderDigest() {
   const d = state.digest;
   if (!d) return;
   const f = currentFilters();
-  const active = f.text || f.path || f.type || f.who;
+  const active = f.text || f.path || f.type || f.who || f.task;
 
   const buckets = d.buckets
     .map((b) => Object.assign({}, b, { changes: b.changes.filter((ch) => changeMatches(ch, f)) }))
