@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/donieltripura/devtrail/internal/api"
 	"github.com/donieltripura/devtrail/internal/collector"
@@ -858,6 +862,18 @@ func runServer(port int, autoOpen bool) error {
 	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
 	url := fmt.Sprintf("http://%s", addr)
 
+	// Run the schedules declared in config.yaml. Until now these were stored
+	// and displayed but never executed.
+	ctx, stopScheduler := context.WithCancel(context.Background())
+	defer stopScheduler()
+	srv.Scheduler.Start(ctx, time.Minute)
+
+	httpSrv := &http.Server{
+		Addr:              addr,
+		Handler:           srv.Routes(),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
 	fmt.Printf("DevTrail server running at %s\n", url)
 	fmt.Println("Press Ctrl+C to stop.")
 
@@ -865,7 +881,27 @@ func runServer(port int, autoOpen bool) error {
 		api.OpenBrowser(url)
 	}
 
-	return http.ListenAndServe(addr, srv.Routes())
+	// Shut down cleanly on Ctrl+C so the SQLite connection is closed properly.
+	errCh := make(chan error, 1)
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-sigCh:
+		fmt.Println("\nShutting down…")
+		stopScheduler()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return httpSrv.Shutdown(shutdownCtx)
+	}
 }
 
 func truncate(s string, l int) string {

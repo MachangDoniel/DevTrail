@@ -39,6 +39,14 @@ reports:
           type: activity
           window: previous_calendar_day
           catch_up: run_once
+        - name: weekly-digest
+          enabled: true
+          frequency: weekly
+          at: "09:00"
+          day: monday
+          type: digest
+          window: week
+          catch_up: run_once
         - name: weekly-summary
           enabled: true
           frequency: weekly
@@ -65,3 +73,6 @@ output:
         - html
     archive: true
     update_latest: true
+sprints:
+    length_days: 14
+    name_prefix: Sprint

@@ -33,6 +33,7 @@ const (
 	GroupByDay     GroupBy = "day"
 	GroupByWeek    GroupBy = "week"
 	GroupByMonth   GroupBy = "month"
+	GroupBySprint  GroupBy = "sprint"
 	GroupByFeature GroupBy = "feature"
 	GroupByMerge   GroupBy = "merge"
 	GroupByAuthor  GroupBy = "author"
@@ -41,7 +42,7 @@ const (
 // ValidGroupBy reports whether g is a grouping the service implements.
 func ValidGroupBy(g string) bool {
 	switch GroupBy(g) {
-	case GroupByDay, GroupByWeek, GroupByMonth, GroupByFeature, GroupByMerge, GroupByAuthor:
+	case GroupByDay, GroupByWeek, GroupByMonth, GroupBySprint, GroupByFeature, GroupByMerge, GroupByAuthor:
 		return true
 	}
 	return false
@@ -241,12 +242,55 @@ func Classify(c core.Commit) Change {
 	return ch
 }
 
+// SprintSpec describes the sprint cadence used by GroupBySprint.
+type SprintSpec struct {
+	LengthDays int
+	// Anchor is the first day of sprint 1. When zero, Build anchors to the
+	// Monday on or before the oldest commit in range, so sprint grouping works
+	// with no configuration.
+	Anchor time.Time
+	Prefix string
+}
+
+func (s SprintSpec) normalise(oldest time.Time) SprintSpec {
+	if s.LengthDays <= 0 {
+		s.LengthDays = 14
+	}
+	if s.Prefix == "" {
+		s.Prefix = "Sprint"
+	}
+	if s.Anchor.IsZero() && !oldest.IsZero() {
+		t := oldest.Local()
+		offset := (int(t.Weekday()) + 6) % 7 // Monday = 0
+		s.Anchor = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).AddDate(0, 0, -offset)
+	}
+	s.Anchor = time.Date(s.Anchor.Year(), s.Anchor.Month(), s.Anchor.Day(), 0, 0, 0, 0, time.Local)
+	return s
+}
+
+// SprintFor returns the 1-based sprint number and window containing t.
+// Commits before the anchor fall into sprint 1 rather than a negative sprint.
+func (s SprintSpec) SprintFor(t time.Time) (number int, start, end time.Time) {
+	day := t.Local()
+	day = time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location())
+
+	elapsed := int(day.Sub(s.Anchor).Hours() / 24)
+	index := elapsed / s.LengthDays
+	if elapsed < 0 {
+		index = 0
+	}
+	start = s.Anchor.AddDate(0, 0, index*s.LengthDays)
+	end = start.AddDate(0, 0, s.LengthDays).Add(-time.Nanosecond)
+	return index + 1, start, end
+}
+
 // DigestOptions controls what Build collects.
 type DigestOptions struct {
 	GroupBy GroupBy
 	Ref     string // branch or ref; "" means the current checkout, "--all" means every ref
 	Since   time.Time
 	Limit   int
+	Sprint  SprintSpec
 }
 
 // Build assembles a digest for the requested grouping.
@@ -311,6 +355,9 @@ func (s *DigestService) Build(opts DigestOptions) (*Digest, error) {
 	})
 
 	switch opts.GroupBy {
+	case GroupBySprint:
+		spec := opts.Sprint.normalise(d.RangeStart)
+		d.Buckets = groupBySprint(changes, spec)
 	case GroupByMerge:
 		d.Buckets, d.Notes = s.groupByMerge(changes)
 	case GroupByFeature:
@@ -385,6 +432,33 @@ func groupByPeriod(changes []Change, g GroupBy) []Bucket {
 		if byKey[key] == nil {
 			s, e := start, end
 			byKey[key] = &Bucket{Key: key, Label: label, Start: &s, End: &e}
+			order = append(order, key)
+		}
+		byKey[key].Changes = append(byKey[key].Changes, ch)
+	}
+
+	out := make([]Bucket, 0, len(order))
+	for _, k := range order {
+		finishBucket(byKey[k])
+		out = append(out, *byKey[k])
+	}
+	return out
+}
+
+func groupBySprint(changes []Change, spec SprintSpec) []Bucket {
+	order := []string{}
+	byKey := map[string]*Bucket{}
+
+	for _, ch := range changes {
+		n, start, end := spec.SprintFor(ch.Timestamp)
+		key := fmt.Sprintf("sprint-%d", n)
+		if byKey[key] == nil {
+			s, e := start, end
+			byKey[key] = &Bucket{
+				Key:   key,
+				Label: fmt.Sprintf("%s %d", spec.Prefix, n),
+				Start: &s, End: &e,
+			}
 			order = append(order, key)
 		}
 		byKey[key].Changes = append(byKey[key].Changes, ch)

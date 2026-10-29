@@ -1115,6 +1115,7 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
               <option value="week">By week</option>
               <option value="day">By day</option>
               <option value="month">By month</option>
+              <option value="sprint">By sprint</option>
               <option value="feature">By feature</option>
               <option value="merge">By merge</option>
               <option value="author">By author / agent</option>
@@ -1457,6 +1458,23 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
         <div id="config-alert"></div>
         <div class="stack">
           <div class="grid grid--metrics" id="config-metrics"></div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Automated reports</div>
+                <div class="card-sub" id="sprint-cadence"></div>
+              </div>
+            </div>
+            <div class="card-body card-body--flush">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Schedule</th><th>When</th><th>Produces</th><th>Last run</th><th>Next run</th><th>Status</th></tr></thead>
+                  <tbody id="schedules-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-header">
               <div class="card-title mono">config.yaml</div>
@@ -2564,6 +2582,7 @@ loaders.config = async function () {
 
     $('#config-filter').value = '';
     renderEditor(configLines());
+    loadSchedules();
   } catch (err) {
     showAlert('config-alert', err);
     $('#editor-code').textContent = '';
@@ -2574,6 +2593,44 @@ loaders.config = async function () {
 /* =========================================================================
    DOCTOR
    ========================================================================= */
+
+const FREQ_LABEL = { daily: 'Every day', weekly: 'Every week', monthly: 'Every month', yearly: 'Every year', interval: 'On an interval' };
+
+function scheduleWhen(sc) {
+  const freq = FREQ_LABEL[sc.frequency] || sc.frequency;
+  const day = sc.day_of_week ? ` on ${h(sc.day_of_week)}` : '';
+  const at = sc.at_time ? ` at ${h(sc.at_time)}` : '';
+  return `${h(freq)}${day}${at}`;
+}
+
+async function loadSchedules() {
+  const body = $('#schedules-body');
+  body.innerHTML = skeletonRows(6, 2);
+  try {
+    const data = await api.get('/api/schedules');
+    const rows = data.schedules || [];
+
+    const sp = data.sprint || {};
+    $('#sprint-cadence').textContent =
+      `Sprints are ${sp.length_days}-day cycles` +
+      (sp.start_date ? ` anchored to ${sp.start_date}` : ' anchored to the first week of history') +
+      '. Change this under "sprints" in config.yaml.';
+
+    body.innerHTML = rows.length ? rows.map((sc) => `
+      <tr>
+        <td><strong>${h(sc.name)}</strong></td>
+        <td>${scheduleWhen(sc)}</td>
+        <td><span class="badge badge--info">${h(sc.report_type)}</span>
+            <span class="badge badge--neutral">${h(sc.window_spec)}</span></td>
+        <td class="num">${sc.last_run_at ? h(formatRelative({ created_at: sc.last_run_at })) : '<span class="t-dim">never</span>'}</td>
+        <td class="num">${sc.next_run_at ? h(new Date(sc.next_run_at).toLocaleString()) : '<span class="t-dim">—</span>'}</td>
+        <td><span class="badge badge--${sc.is_enabled ? 'ok' : 'neutral'}">${sc.is_enabled ? 'Enabled' : 'Disabled'}</span></td>
+      </tr>`).join('')
+      : emptyRow(6, 'No schedules configured', 'Add entries under reports.schedules in config.yaml.');
+  } catch (err) {
+    body.innerHTML = emptyRow(6, 'Could not load schedules', err.message);
+  }
+}
 
 loaders.doctor = async function () {
   clearAlert('doctor-alert');

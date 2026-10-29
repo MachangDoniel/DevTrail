@@ -31,6 +31,9 @@ type StorageInterface interface {
 	ListReports(reportType string, limit int) ([]Report, error)
 	CreateReportSnapshot(s *ReportSnapshot) error
 	ListSnapshots(reportID string) ([]ReportSnapshot, error)
+	UpsertSchedule(s *Schedule) error
+	ListSchedules() ([]Schedule, error)
+	MarkScheduleRun(name string, ranAt, nextRun time.Time) error
 	Close() error
 }
 

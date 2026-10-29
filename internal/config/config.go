@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,6 +24,45 @@ type Config struct {
 	Privacy PrivacyConfig `yaml:"privacy" json:"privacy"`
 	Reports ReportsConfig `yaml:"reports" json:"reports"`
 	Output  OutputConfig  `yaml:"output" json:"output"`
+	Sprints SprintConfig  `yaml:"sprints" json:"sprints"`
+}
+
+// SprintConfig defines the cadence used to group changes into sprints.
+// With no start_date the anchor falls back to the Monday of the oldest commit
+// in range, so sprint grouping works without any configuration at all.
+type SprintConfig struct {
+	LengthDays int    `yaml:"length_days" json:"length_days"`
+	StartDate  string `yaml:"start_date,omitempty" json:"start_date,omitempty"` // YYYY-MM-DD anchor
+	NamePrefix string `yaml:"name_prefix,omitempty" json:"name_prefix,omitempty"`
+}
+
+// SprintLength returns the configured sprint length, defaulting to a fortnight.
+func (c *Config) SprintLength() int {
+	if c.Sprints.LengthDays > 0 {
+		return c.Sprints.LengthDays
+	}
+	return 14
+}
+
+// SprintAnchor returns the configured sprint start date, or the zero time when
+// unset or unparseable, which tells the digest to derive one from history.
+func (c *Config) SprintAnchor() time.Time {
+	if c.Sprints.StartDate == "" {
+		return time.Time{}
+	}
+	t, err := time.ParseInLocation("2006-01-02", c.Sprints.StartDate, time.Local)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
+}
+
+// SprintPrefix returns the label prefix used for sprint buckets.
+func (c *Config) SprintPrefix() string {
+	if c.Sprints.NamePrefix != "" {
+		return c.Sprints.NamePrefix
+	}
+	return "Sprint"
 }
 
 type ProjectConfig struct {
@@ -180,6 +220,10 @@ func DefaultConfig(projectName, defaultBranch string) *Config {
 			Formats:      []string{"html"},
 			Archive:      true,
 			UpdateLatest: true,
+		},
+		Sprints: SprintConfig{
+			LengthDays: 14,
+			NamePrefix: "Sprint",
 		},
 	}
 }

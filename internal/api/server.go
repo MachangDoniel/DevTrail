@@ -35,24 +35,28 @@ type Server struct {
 	HandoffSvc   *services.HandoffService
 	MetricsSvc   *services.MetricsService
 	DigestSvc    *services.DigestService
+	Scheduler    *services.SchedulerService
 	Assets       fs.FS
 }
 
 func NewServer(repoDir string, cfg *config.Config, store core.StorageInterface, assets fs.FS) *Server {
 	gitCol := collector.NewGitCollector(repoDir)
+	engine := reports.NewReportEngine(repoDir, cfg, store)
+	digestSvc := services.NewDigestService(store, gitCol)
 	return &Server{
 		RepoDir:      repoDir,
 		Config:       cfg,
 		Store:        store,
 		Git:          gitCol,
-		ReportEngine: reports.NewReportEngine(repoDir, cfg, store),
+		ReportEngine: engine,
 		TaskService:  services.NewTaskService(store, gitCol),
 		EvidenceSvc:  services.NewEvidenceService(store, gitCol),
 		DoctorSvc:    services.NewDoctorService(repoDir, cfg),
 		ProjectSvc:   services.NewProjectService(repoDir, cfg, store),
 		HandoffSvc:   services.NewHandoffService(store, gitCol),
 		MetricsSvc:   services.NewMetricsService(store, gitCol),
-		DigestSvc:    services.NewDigestService(store, gitCol),
+		DigestSvc:    digestSvc,
+		Scheduler:    services.NewSchedulerService(store, cfg, engine, digestSvc),
 		Assets:       assets,
 	}
 }
@@ -81,6 +85,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/digest", s.handleDigest)
 	mux.HandleFunc("/api/digest/report", s.handleDigestReport)
+	mux.HandleFunc("/api/schedules", s.handleSchedules)
 
 	// Serve generated HTML reports statically
 	reportsDir := http.Dir(s.RepoDir + "/.devtrail/reports")
@@ -220,7 +225,7 @@ func (s *Server) handleDigest(w http.ResponseWriter, r *http.Request) {
 	}
 	if !services.ValidGroupBy(group) {
 		clientError(w, http.StatusBadRequest,
-			"group must be one of: day, week, month, feature, merge, author")
+			"group must be one of: day, week, month, sprint, feature, merge, author")
 		return
 	}
 
@@ -228,6 +233,7 @@ func (s *Server) handleDigest(w http.ResponseWriter, r *http.Request) {
 		GroupBy: services.GroupBy(group),
 		Ref:     r.URL.Query().Get("ref"),
 		Limit:   queryInt(r, "limit", 400, 2000),
+		Sprint:  s.sprintSpec(),
 	}
 	if days := queryInt(r, "days", 0, 3650); days > 0 {
 		opts.Since = time.Now().AddDate(0, 0, -days)
@@ -262,7 +268,7 @@ func (s *Server) handleDigestReport(w http.ResponseWriter, r *http.Request) {
 	}
 	if !services.ValidGroupBy(req.Group) {
 		clientError(w, http.StatusBadRequest,
-			"group must be one of: day, week, month, feature, merge, author")
+			"group must be one of: day, week, month, sprint, feature, merge, author")
 		return
 	}
 
@@ -270,6 +276,7 @@ func (s *Server) handleDigestReport(w http.ResponseWriter, r *http.Request) {
 		GroupBy: services.GroupBy(req.Group),
 		Ref:     req.Ref,
 		Limit:   req.Limit,
+		Sprint:  s.sprintSpec(),
 	}
 	if req.Days > 0 {
 		opts.Since = time.Now().AddDate(0, 0, -req.Days)
@@ -292,6 +299,36 @@ func (s *Server) handleDigestReport(w http.ResponseWriter, r *http.Request) {
 		"report":  report,
 		"file":    path,
 		"web_url": report.WebURL,
+	})
+}
+
+// sprintSpec maps the sprint cadence from config into the digest's spec.
+func (s *Server) sprintSpec() services.SprintSpec {
+	return services.SprintSpec{
+		LengthDays: s.Config.SprintLength(),
+		Anchor:     s.Config.SprintAnchor(),
+		Prefix:     s.Config.SprintPrefix(),
+	}
+}
+
+// handleSchedules reports what the scheduler is watching and when each
+// schedule last ran or is next due.
+func (s *Server) handleSchedules(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.Store.ListSchedules()
+	if err != nil {
+		serverError(w, "list schedules", err)
+		return
+	}
+	if rows == nil {
+		rows = []core.Schedule{}
+	}
+	jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"schedules": rows,
+		"sprint": map[string]interface{}{
+			"length_days": s.Config.SprintLength(),
+			"start_date":  s.Config.Sprints.StartDate,
+			"prefix":      s.Config.SprintPrefix(),
+		},
 	})
 }
 

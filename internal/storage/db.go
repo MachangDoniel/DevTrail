@@ -714,3 +714,91 @@ func (d *DB) ListSnapshots(reportID string) ([]core.ReportSnapshot, error) {
 	}
 	return snapshots, rows.Err()
 }
+
+// UpsertSchedule stores a schedule definition, keyed by its unique name.
+// Run bookkeeping (last_run_at / next_run_at) is preserved across upserts so
+// reloading config does not re-run a schedule that already fired.
+func (d *DB) UpsertSchedule(s *core.Schedule) error {
+	if s.ID == "" {
+		s.ID = uuid.NewString()
+	}
+	query := `
+	INSERT INTO schedules (
+		id, project_id, name, frequency, cron_expr, at_time, day_of_week,
+		report_type, window_spec, catch_up_policy, is_enabled, last_run_at, next_run_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	ON CONFLICT(name) DO UPDATE SET
+		frequency = excluded.frequency,
+		cron_expr = excluded.cron_expr,
+		at_time = excluded.at_time,
+		day_of_week = excluded.day_of_week,
+		report_type = excluded.report_type,
+		window_spec = excluded.window_spec,
+		catch_up_policy = excluded.catch_up_policy,
+		is_enabled = excluded.is_enabled,
+		-- Keep the pending slot when the timing is unchanged, so a restart does
+		-- not discard a run that was already due. Recompute it when the timing
+		-- actually changed, or an edit to at/day/frequency would never apply.
+		next_run_at = CASE
+			WHEN schedules.frequency IS NOT excluded.frequency
+			  OR schedules.at_time IS NOT excluded.at_time
+			  OR schedules.day_of_week IS NOT excluded.day_of_week
+			  OR schedules.window_spec IS NOT excluded.window_spec
+			THEN excluded.next_run_at
+			ELSE schedules.next_run_at
+		END
+	`
+	_, err := d.conn.Exec(query,
+		s.ID, s.ProjectID, s.Name, s.Frequency, s.CronExpr, s.AtTime, s.DayOfWeek,
+		s.ReportType, s.WindowSpec, s.CatchUpPolicy, s.IsEnabled, s.LastRunAt, s.NextRunAt,
+	)
+	return err
+}
+
+// ListSchedules returns every stored schedule, enabled first then by name.
+func (d *DB) ListSchedules() ([]core.Schedule, error) {
+	query := `
+	SELECT id, project_id, name, frequency, COALESCE(cron_expr, ''), COALESCE(at_time, ''),
+	       COALESCE(day_of_week, ''), report_type, window_spec, catch_up_policy,
+	       is_enabled, last_run_at, next_run_at, created_at
+	FROM schedules
+	ORDER BY is_enabled DESC, name
+	`
+	rows, err := d.conn.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []core.Schedule
+	for rows.Next() {
+		var s core.Schedule
+		var lastRun, nextRun sql.NullTime
+		if err := rows.Scan(
+			&s.ID, &s.ProjectID, &s.Name, &s.Frequency, &s.CronExpr, &s.AtTime,
+			&s.DayOfWeek, &s.ReportType, &s.WindowSpec, &s.CatchUpPolicy,
+			&s.IsEnabled, &lastRun, &nextRun, &s.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		if lastRun.Valid {
+			t := lastRun.Time
+			s.LastRunAt = &t
+		}
+		if nextRun.Valid {
+			t := nextRun.Time
+			s.NextRunAt = &t
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// MarkScheduleRun records that a schedule fired and when it is next due.
+func (d *DB) MarkScheduleRun(name string, ranAt, nextRun time.Time) error {
+	_, err := d.conn.Exec(
+		`UPDATE schedules SET last_run_at = ?, next_run_at = ? WHERE name = ?`,
+		ranAt, nextRun, name,
+	)
+	return err
+}

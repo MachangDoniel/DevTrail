@@ -150,12 +150,12 @@ func TestClassifyDetectsMerge(t *testing.T) {
 }
 
 func TestValidGroupBy(t *testing.T) {
-	for _, g := range []string{"day", "week", "month", "feature", "merge", "author"} {
+	for _, g := range []string{"day", "week", "month", "sprint", "feature", "merge", "author"} {
 		if !services.ValidGroupBy(g) {
 			t.Errorf("%q should be a valid grouping", g)
 		}
 	}
-	for _, g := range []string{"", "year", "sprint", "bogus"} {
+	for _, g := range []string{"", "year", "quarter", "bogus"} {
 		if services.ValidGroupBy(g) {
 			t.Errorf("%q should not be a valid grouping", g)
 		}
@@ -226,5 +226,92 @@ func TestDigestSinceFiltersOldCommits(t *testing.T) {
 	}
 	if d.Stats.Commits != 0 {
 		t.Errorf("expected no commits after a future cutoff, got %d", d.Stats.Commits)
+	}
+}
+
+// Sprint boundaries must be stable and contiguous: every day belongs to
+// exactly one sprint, and sprint N+1 starts the instant sprint N ends.
+func TestSprintBoundariesAreContiguous(t *testing.T) {
+	anchor := time.Date(2026, 10, 5, 0, 0, 0, 0, time.Local) // a Monday
+	spec := services.SprintSpec{LengthDays: 14, Anchor: anchor, Prefix: "Sprint"}
+
+	cases := []struct {
+		day        time.Time
+		wantNumber int
+	}{
+		{anchor, 1},
+		{anchor.AddDate(0, 0, 13), 1}, // last day of sprint 1
+		{anchor.AddDate(0, 0, 14), 2}, // first day of sprint 2
+		{anchor.AddDate(0, 0, 27), 2},
+		{anchor.AddDate(0, 0, 28), 3},
+	}
+	for _, tc := range cases {
+		n, start, end := spec.SprintFor(tc.day)
+		if n != tc.wantNumber {
+			t.Errorf("%s: sprint %d, want %d", tc.day.Format("2006-01-02"), n, tc.wantNumber)
+		}
+		if tc.day.Before(start) || tc.day.After(end) {
+			t.Errorf("%s falls outside its own sprint window %s..%s",
+				tc.day.Format("2006-01-02"), start.Format("2006-01-02"), end.Format("2006-01-02"))
+		}
+	}
+
+	// Sprint N+1 must begin exactly where sprint N ended.
+	_, _, end1 := spec.SprintFor(anchor)
+	_, start2, _ := spec.SprintFor(anchor.AddDate(0, 0, 14))
+	if start2.Sub(end1) != time.Nanosecond {
+		t.Errorf("gap between sprints: sprint 1 ends %v, sprint 2 starts %v", end1, start2)
+	}
+}
+
+func TestSprintHonoursConfiguredLength(t *testing.T) {
+	anchor := time.Date(2026, 10, 5, 0, 0, 0, 0, time.Local)
+	weekly := services.SprintSpec{LengthDays: 7, Anchor: anchor}
+
+	if n, _, _ := weekly.SprintFor(anchor.AddDate(0, 0, 7)); n != 2 {
+		t.Errorf("with a 7-day cadence, day 7 should be sprint 2, got %d", n)
+	}
+	if n, _, _ := weekly.SprintFor(anchor.AddDate(0, 0, 6)); n != 1 {
+		t.Errorf("with a 7-day cadence, day 6 should still be sprint 1, got %d", n)
+	}
+}
+
+// Commits older than the anchor must not land in a zero or negative sprint.
+func TestSprintClampsCommitsBeforeAnchor(t *testing.T) {
+	anchor := time.Date(2026, 10, 5, 0, 0, 0, 0, time.Local)
+	spec := services.SprintSpec{LengthDays: 14, Anchor: anchor}
+
+	n, _, _ := spec.SprintFor(anchor.AddDate(0, 0, -30))
+	if n != 1 {
+		t.Errorf("a commit before the anchor should clamp to sprint 1, got %d", n)
+	}
+}
+
+func TestSprintGroupingWorksWithoutConfiguredAnchor(t *testing.T) {
+	repo := newTestRepo(t)
+	db, cleanup := newTestStore(t)
+	defer cleanup()
+
+	svc := services.NewDigestService(db, newCollector(repo))
+	d, err := svc.Build(services.DigestOptions{
+		GroupBy: services.GroupBySprint,
+		Sprint:  services.SprintSpec{}, // no anchor, no length: all defaults
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Buckets) == 0 {
+		t.Fatal("expected at least one sprint bucket with zero configuration")
+	}
+	if d.Buckets[0].Start == nil || d.Buckets[0].End == nil {
+		t.Error("sprint buckets must carry their window")
+	}
+
+	total := 0
+	for _, b := range d.Buckets {
+		total += b.Stats.Commits
+	}
+	if total != d.Stats.Commits {
+		t.Errorf("sprint buckets sum to %d, digest reports %d", total, d.Stats.Commits)
 	}
 }
