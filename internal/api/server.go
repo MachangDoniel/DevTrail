@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/donieltripura/devtrail/internal/collector"
 	"github.com/donieltripura/devtrail/internal/config"
@@ -33,6 +34,7 @@ type Server struct {
 	ProjectSvc   *services.ProjectService
 	HandoffSvc   *services.HandoffService
 	MetricsSvc   *services.MetricsService
+	DigestSvc    *services.DigestService
 	Assets       fs.FS
 }
 
@@ -50,6 +52,7 @@ func NewServer(repoDir string, cfg *config.Config, store core.StorageInterface, 
 		ProjectSvc:   services.NewProjectService(repoDir, cfg, store),
 		HandoffSvc:   services.NewHandoffService(store, gitCol),
 		MetricsSvc:   services.NewMetricsService(store, gitCol),
+		DigestSvc:    services.NewDigestService(store, gitCol),
 		Assets:       assets,
 	}
 }
@@ -76,6 +79,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/doctor", s.handleDoctor)
 	mux.HandleFunc("/api/config", s.handleConfig)
 	mux.HandleFunc("/api/metrics", s.handleMetrics)
+	mux.HandleFunc("/api/digest", s.handleDigest)
+	mux.HandleFunc("/api/digest/report", s.handleDigestReport)
 
 	// Serve generated HTML reports statically
 	reportsDir := http.Dir(s.RepoDir + "/.devtrail/reports")
@@ -205,6 +210,89 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonResponse(w, http.StatusOK, m)
+}
+
+// handleDigest answers "what changed, grouped by X".
+func (s *Server) handleDigest(w http.ResponseWriter, r *http.Request) {
+	group := r.URL.Query().Get("group")
+	if group == "" {
+		group = string(services.GroupByWeek)
+	}
+	if !services.ValidGroupBy(group) {
+		clientError(w, http.StatusBadRequest,
+			"group must be one of: day, week, month, feature, merge, author")
+		return
+	}
+
+	opts := services.DigestOptions{
+		GroupBy: services.GroupBy(group),
+		Ref:     r.URL.Query().Get("ref"),
+		Limit:   queryInt(r, "limit", 400, 2000),
+	}
+	if days := queryInt(r, "days", 0, 3650); days > 0 {
+		opts.Since = time.Now().AddDate(0, 0, -days)
+	}
+
+	digest, err := s.DigestSvc.Build(opts)
+	if err != nil {
+		serverError(w, "build digest", err)
+		return
+	}
+	jsonResponse(w, http.StatusOK, digest)
+}
+
+// handleDigestReport renders the current digest as a shareable HTML file.
+func (s *Server) handleDigestReport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		clientError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	var req struct {
+		Group string `json:"group"`
+		Ref   string `json:"ref"`
+		Days  int    `json:"days"`
+		Limit int    `json:"limit"`
+	}
+	if err := decodeBody(r, &req); err != nil {
+		clientError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+	if req.Group == "" {
+		req.Group = string(services.GroupByWeek)
+	}
+	if !services.ValidGroupBy(req.Group) {
+		clientError(w, http.StatusBadRequest,
+			"group must be one of: day, week, month, feature, merge, author")
+		return
+	}
+
+	opts := services.DigestOptions{
+		GroupBy: services.GroupBy(req.Group),
+		Ref:     req.Ref,
+		Limit:   req.Limit,
+	}
+	if req.Days > 0 {
+		opts.Since = time.Now().AddDate(0, 0, -req.Days)
+	}
+
+	digest, err := s.DigestSvc.Build(opts)
+	if err != nil {
+		serverError(w, "build digest", err)
+		return
+	}
+
+	report, path, err := s.ReportEngine.GenerateDigestReport(digest, s.Config.Project.Name)
+	if err != nil {
+		serverError(w, "generate digest report", err)
+		return
+	}
+
+	report.WebURL = s.reportWebURL(path)
+	jsonResponse(w, http.StatusCreated, map[string]interface{}{
+		"report":  report,
+		"file":    path,
+		"web_url": report.WebURL,
+	})
 }
 
 func (s *Server) handleBranches(w http.ResponseWriter, r *http.Request) {

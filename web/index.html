@@ -567,6 +567,68 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
 .feed-meta { font-size: var(--fs-label); color: var(--text-dim); margin-top: 2px; }
 
 /* =========================================================================
+   CHANGES (digest)
+   ========================================================================= */
+.split-bar {
+  display: flex; height: 10px; border-radius: 9999px; overflow: hidden;
+  background: var(--neutral-bg); margin-top: var(--space-2);
+}
+.split-seg { height: 100%; }
+.split-seg--human { background: var(--cyan); }
+.split-seg--agent { background: var(--purple); }
+.split-legend {
+  display: flex; gap: var(--space-4); flex-wrap: wrap;
+  margin-top: var(--space-2); font-size: var(--fs-label); color: var(--text-muted);
+}
+.split-legend .dot { display: inline-block; margin-right: var(--space-1); }
+
+.bucket + .bucket { margin-top: var(--space-4); }
+.bucket-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-3); flex-wrap: wrap;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.bucket-title { font-size: var(--fs-section); font-weight: 700; }
+.bucket-sub { font-size: var(--fs-label); color: var(--text-dim); margin-top: 2px; }
+.bucket-chips { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+
+.change-list { list-style: none; }
+.change {
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+}
+.change:last-child { border-bottom: none; }
+.change:hover { background: rgba(255, 255, 255, 0.025); }
+.change-sha { font-family: var(--font-mono); font-size: var(--fs-label); color: var(--text-dim); padding-top: 2px; }
+.change-main { min-width: 0; }
+.change-headline { font-size: var(--fs-meta); font-weight: 600; line-height: 1.4; }
+.change-meta {
+  display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center;
+  margin-top: var(--space-2); font-size: var(--fs-label); color: var(--text-dim);
+}
+.change-stats {
+  font-family: var(--font-mono); font-size: var(--fs-label);
+  white-space: nowrap; text-align: right; padding-top: 2px;
+}
+.change-files { color: var(--text-dim); }
+@media (max-width: 768px) {
+  .change { grid-template-columns: 1fr; }
+  .change-stats { text-align: left; }
+}
+
+/* Commit type colours, reused by badges in the digest */
+.type-feat     { background: var(--emerald-bg); color: var(--emerald); border-color: rgba(52,211,153,.3); }
+.type-fix      { background: var(--amber-bg);   color: var(--amber);   border-color: rgba(251,191,36,.3); }
+.type-refactor { background: var(--purple-bg);  color: var(--purple);  border-color: rgba(192,132,252,.3); }
+.type-perf     { background: var(--cyan-bg);    color: var(--cyan);    border-color: rgba(56,189,248,.3); }
+.type-other    { background: var(--neutral-bg); color: var(--text-muted); border-color: var(--border); }
+
+/* =========================================================================
    BRANCH GRAPH — three panes
    ========================================================================= */
 .graph {
@@ -979,6 +1041,7 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
     <div class="nav-group">
       <h2 class="nav-group-label" id="navgrp-work">Work</h2>
       <ul aria-labelledby="navgrp-work">
+        <li><button type="button" class="nav-item" data-view="changes"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-list"/></svg><span class="label">Changes</span></button></li>
         <li><button type="button" class="nav-item" data-view="overview"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-overview"/></svg><span class="label">Overview</span></button></li>
         <li><button type="button" class="nav-item" data-view="graph"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-graph"/></svg><span class="label">Branch Graph</span></button></li>
         <li><button type="button" class="nav-item" data-view="timeline"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-timeline"/></svg><span class="label">Timeline</span></button></li>
@@ -1037,6 +1100,49 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
   </header>
 
   <main class="viewport" id="viewport">
+
+    <!-- ============ CHANGES ============ -->
+    <section class="page" id="page-changes" role="tabpanel" aria-label="Changes">
+      <div class="page-inner">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Changes</h1>
+            <p class="page-subtitle">What changed, grouped however you need to read it. Types and features come from commit subjects; agent credit comes from commit trailers, so it covers history written before DevTrail existed.</p>
+          </div>
+          <div class="page-actions">
+            <label class="sr-only" for="digest-group">Group changes by</label>
+            <select class="select input--inline" id="digest-group">
+              <option value="week">By week</option>
+              <option value="day">By day</option>
+              <option value="month">By month</option>
+              <option value="feature">By feature</option>
+              <option value="merge">By merge</option>
+              <option value="author">By author / agent</option>
+            </select>
+            <label class="sr-only" for="digest-range">Time range</label>
+            <select class="select input--inline" id="digest-range">
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="365">Last year</option>
+              <option value="0" selected>All history</option>
+            </select>
+            <button type="button" class="btn btn--primary" data-action="export-digest">
+              <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-file"/></svg>
+              Export report
+            </button>
+          </div>
+        </div>
+        <div id="changes-alert"></div>
+        <div class="stack">
+          <div class="grid grid--metrics" id="digest-metrics"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Who changed it</div></div>
+            <div class="card-body"><div id="digest-contributors"></div></div>
+          </div>
+          <div id="digest-buckets"></div>
+        </div>
+      </div>
+    </section>
 
     <!-- ============ OVERVIEW ============ -->
     <section class="page" id="page-overview" role="tabpanel" aria-label="Overview">
@@ -1635,14 +1741,14 @@ function skeletonRows(colspan, count) {
    ROUTING
    ========================================================================= */
 
-const VIEWS = ['overview', 'graph', 'timeline', 'board', 'checkpoints',
+const VIEWS = ['changes', 'overview', 'graph', 'timeline', 'board', 'checkpoints',
                'evidence', 'reports', 'events', 'config', 'doctor'];
 
 const loaders = {};   // view -> loader function
 const loaded = {};    // view -> true once loaded at least once
 
 function showView(view, force) {
-  if (!VIEWS.includes(view)) view = 'overview';
+  if (!VIEWS.includes(view)) view = 'changes';
 
   $$('.page').forEach((p) => p.classList.toggle('is-active', p.id === `page-${view}`));
   $$('.nav-item').forEach((b) => {
@@ -1880,6 +1986,144 @@ loaders.overview = async function () {
   } catch (err) {
     showAlert('overview-alert', err);
     $('#overview-metrics').innerHTML = '';
+  }
+};
+
+/* =========================================================================
+   CHANGES (digest)
+   ========================================================================= */
+
+const TYPE_LABEL = {
+  feat: 'Feature', fix: 'Fix', refactor: 'Refactor', perf: 'Performance',
+  docs: 'Docs', test: 'Tests', chore: 'Chore', build: 'Build', ci: 'CI',
+  style: 'Style', revert: 'Revert', other: 'Other',
+};
+
+function typeClass(t) {
+  return ['feat', 'fix', 'refactor', 'perf'].includes(t) ? `type-${t}` : 'type-other';
+}
+
+function plural(n, word) { return `${n} ${word}${n === 1 ? '' : 's'}`; }
+
+function renderChange(ch) {
+  const agents = (ch.agents || [])
+    .map((a) => `<span class="badge badge--accent">${h(a.name)}</span>`).join('');
+  const scope = ch.scope ? `<span class="badge badge--info">${h(ch.scope)}</span>` : '';
+  const breaking = ch.breaking ? '<span class="badge badge--danger">Breaking</span>' : '';
+  const merge = ch.is_merge ? '<span class="badge badge--neutral">Merge</span>' : '';
+
+  return `<li class="change">
+    <span class="change-sha">${h(ch.short_sha)}</span>
+    <div class="change-main">
+      <div class="change-headline">${h(ch.headline || ch.subject)}</div>
+      <div class="change-meta">
+        <span class="badge ${typeClass(ch.type)}">${h(TYPE_LABEL[ch.type] || ch.type)}</span>
+        ${scope}${breaking}${merge}${agents}
+        <span>${h(formatRelative(ch))}</span>
+      </div>
+    </div>
+    <div class="change-stats">
+      <span class="t-emerald">+${ch.stats.insertions}</span>
+      <span class="t-rose">−${ch.stats.deletions}</span>
+      <div class="change-files">${plural(ch.stats.files, 'file')}</div>
+    </div>
+  </li>`;
+}
+
+function renderBucket(b) {
+  const chips = Object.entries(b.types || {})
+    .sort((a, c) => c[1] - a[1])
+    .map(([t, n]) => `<span class="badge ${typeClass(t)}">${h(TYPE_LABEL[t] || t)} ${n}</span>`)
+    .join('');
+  const agentChips = Object.entries(b.agents || {})
+    .map(([a, n]) => `<span class="badge badge--accent">${h(a)} ${n}</span>`).join('');
+
+  const range = b.start && b.end
+    ? `${new Date(b.start).toLocaleDateString()} – ${new Date(b.end).toLocaleDateString()}`
+    : '';
+
+  return `<section class="card bucket">
+    <div class="bucket-head">
+      <div>
+        <div class="bucket-title">${h(b.label)}</div>
+        <div class="bucket-sub">${h(range)}${range ? ' · ' : ''}${plural(b.stats.commits, 'change')} ·
+          ${plural(b.stats.files, 'file')} · <span class="t-emerald">+${b.stats.insertions}</span>
+          <span class="t-rose">−${b.stats.deletions}</span></div>
+      </div>
+      <div class="bucket-chips">${chips}${agentChips}</div>
+    </div>
+    <ul class="change-list">${b.changes.map(renderChange).join('')}</ul>
+  </section>`;
+}
+
+function renderContributors(d) {
+  const host = $('#digest-contributors');
+  if (!d.contributors || !d.contributors.length) { host.innerHTML = emptyState('No contributors in range', ''); return; }
+
+  const total = d.contributors.reduce((sum, c) => sum + c.stats.commits, 0);
+  const agentCommits = d.contributors.filter((c) => c.actor.is_agent)
+    .reduce((sum, c) => sum + c.stats.commits, 0);
+  const humanCommits = total - agentCommits;
+  const pct = (n) => total ? (n / total) * 100 : 0;
+
+  host.innerHTML = `
+    <div class="split-bar">
+      <div class="split-seg split-seg--human" style="width:${pct(humanCommits)}%"></div>
+      <div class="split-seg split-seg--agent" style="width:${pct(agentCommits)}%"></div>
+    </div>
+    <div class="split-legend">
+      <span><span class="dot t-cyan"></span>${plural(humanCommits, 'change')} by people (${Math.round(pct(humanCommits))}%)</span>
+      <span><span class="dot t-purple"></span>${plural(agentCommits, 'change')} with an agent (${Math.round(pct(agentCommits))}%)</span>
+    </div>
+    <div style="margin-top:var(--space-4)">
+      ${d.contributors.map((c) => `
+        <div class="dist-item">
+          <div class="dist-head">
+            <span>${h(c.actor.name)}${c.actor.is_agent ? ' <span class="badge badge--accent">agent</span>' : ''}</span>
+            <span>${plural(c.stats.commits, 'change')} · <span class="t-emerald">+${c.stats.insertions}</span> <span class="t-rose">−${c.stats.deletions}</span></span>
+          </div>
+          <div class="dist-track">
+            <div class="dist-fill" style="width:${pct(c.stats.commits)}%;background:${c.actor.is_agent ? 'var(--purple)' : 'var(--cyan)'}"></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+loaders.changes = async function () {
+  clearAlert('changes-alert');
+  $('#digest-buckets').innerHTML = '<div class="card"><div class="card-body"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div></div>';
+
+  const group = $('#digest-group').value;
+  const days = $('#digest-range').value;
+
+  try {
+    const d = await api.get(`/api/digest?group=${encodeURIComponent(group)}` + (days !== '0' ? `&days=${days}` : ''));
+
+    const agentCommits = (d.contributors || []).filter((c) => c.actor.is_agent)
+      .reduce((sum, c) => sum + c.stats.commits, 0);
+
+    $('#digest-metrics').innerHTML = [
+      metricTile('Changes', d.stats.commits,
+        d.range_start ? `${new Date(d.range_start).toLocaleDateString()} – ${new Date(d.range_end).toLocaleDateString()}` : '', 'cyan'),
+      metricTile('Files touched', d.stats.files, plural(d.buckets.length, 'group'), 'amber'),
+      metricTile('Lines added', `+${d.stats.insertions}`, `−${d.stats.deletions} removed`, 'emerald'),
+      metricTile('With an agent', agentCommits,
+        d.stats.commits ? `${Math.round((agentCommits / d.stats.commits) * 100)}% of changes` : '', 'purple'),
+    ].join('');
+
+    renderContributors(d);
+
+    const notes = (d.notes || [])
+      .map((n) => `<div class="alert" style="border-color:rgba(251,191,36,.35);background:var(--amber-bg);color:var(--amber)">${icon('alert', 16)}<span>${h(n)}</span></div>`)
+      .join('');
+
+    $('#digest-buckets').innerHTML = d.buckets.length
+      ? notes + d.buckets.map(renderBucket).join('')
+      : notes + `<div class="card"><div class="card-body">${emptyState('No changes in this range', 'Widen the time range, or make a commit.')}</div></div>`;
+  } catch (err) {
+    showAlert('changes-alert', err);
+    $('#digest-buckets').innerHTML = '';
+    $('#digest-metrics').innerHTML = '';
   }
 };
 
@@ -2679,6 +2923,18 @@ const actions = {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
+  'export-digest': async () => {
+    const group = $('#digest-group').value;
+    const days = $('#digest-range').value;
+    try {
+      toast('Generating digest report…');
+      const res = await api.post('/api/digest/report', {
+        group, days: days === '0' ? 0 : Number(days),
+      });
+      toast('Digest report generated', 'ok');
+      if (res.web_url) window.open(res.web_url, '_blank', 'noopener');
+    } catch (err) { toast(err.message, 'error'); }
+  },
   'copy-diagnostics': async () => {
     if (!state.doctor) await loaders.doctor();
     copyText(diagnosticsMarkdown(state.doctor), 'Diagnostics copied');
@@ -2771,6 +3027,8 @@ document.addEventListener('keydown', (e) => {
 $('#ref-filter').addEventListener('input', (e) => renderRefTree(e.target.value));
 $('#config-filter').addEventListener('input', filterConfig);
 $('#event-filter').addEventListener('change', () => loaders.events());
+$('#digest-group').addEventListener('change', () => loaders.changes());
+$('#digest-range').addEventListener('change', () => loaders.changes());
 $('#btn-sync').addEventListener('click', () => refreshAll());
 
 /* Sidebar (small screens) */
@@ -2791,7 +3049,7 @@ $('#sidebar-toggle').addEventListener('click', () => {
    ========================================================================= */
 
 async function refreshAll() {
-  const current = location.hash.slice(1) || 'overview';
+  const current = location.hash.slice(1) || 'changes';
   try {
     await Promise.all([loadStatus(), loadTasks()]);
     if (document.getElementById('board').children.length) renderBoard();
@@ -2813,7 +3071,7 @@ async function init() {
   loadStatus().catch((err) => toast(err.message, 'error'));
 
   try { await loadTasks(); } catch (err) { /* surfaced per-view */ }
-  showView(location.hash.slice(1) || 'overview');
+  showView(location.hash.slice(1) || 'changes');
 }
 
 init();

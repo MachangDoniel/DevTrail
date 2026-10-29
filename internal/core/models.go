@@ -57,6 +57,7 @@ const (
 	ReportTypeMonthly            = "monthly"
 	ReportTypeYearly             = "yearly"
 	ReportTypeCustom             = "custom"
+	ReportTypeDigest             = "digest"
 )
 
 // Evidence Types & Results

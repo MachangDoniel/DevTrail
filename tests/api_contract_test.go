@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/donieltripura/devtrail/internal/api"
+	"github.com/donieltripura/devtrail/internal/collector"
 	"github.com/donieltripura/devtrail/internal/config"
 	"github.com/donieltripura/devtrail/internal/core"
 	"github.com/donieltripura/devtrail/internal/storage"
@@ -55,6 +56,11 @@ func newTestRepo(t *testing.T) string {
 	run("commit", "-m", "chore: fixture commit")
 
 	return tmpDir
+}
+
+// newCollector builds a git collector rooted at a fixture repository.
+func newCollector(repoDir string) *collector.GitCollector {
+	return collector.NewGitCollector(repoDir)
 }
 
 func newTestServer(t *testing.T) (http.Handler, func()) {

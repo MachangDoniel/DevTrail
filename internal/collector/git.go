@@ -270,6 +270,81 @@ func (g *GitCollector) CommitsBetween(baseRef, headRef string, limit int) ([]cor
 	return parseGitLogOutput(out, recordSep, fieldSep), nil
 }
 
+// logFormat is the structured git log format shared by the log readers below.
+// The separators are deliberately unlikely to occur in a commit message.
+const (
+	logFieldSep  = "\u00a7\u00a7\u00a7"
+	logRecordSep = "\u00b6\u00b6\u00b6"
+)
+
+func structuredLogFormat() string {
+	return fmt.Sprintf("%s%%H%s%%h%s%%P%s%%an%s%%ae%s%%cn%s%%ce%s%%aI%s%%s%s%%b",
+		logRecordSep, logFieldSep, logFieldSep, logFieldSep, logFieldSep,
+		logFieldSep, logFieldSep, logFieldSep, logFieldSep, logFieldSep)
+}
+
+// LogSince reads commits on ref (empty = current checkout, "--all" = every ref)
+// that are newer than since. A zero `since` means no lower bound.
+func (g *GitCollector) LogSince(ref string, since time.Time, limit int) ([]core.Commit, error) {
+	args := []string{"log"}
+	switch ref {
+	case "":
+		// current checkout
+	case "--all":
+		args = append(args, "--all")
+	default:
+		args = append(args, ref)
+	}
+	if !since.IsZero() {
+		args = append(args, "--since="+since.Format(time.RFC3339))
+	}
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-n%d", limit))
+	}
+	// --numstat reports nothing for a merge by default; -m would explode merges
+	// into one record per parent, so merges intentionally carry no line stats
+	// here and the digest takes their contents from the merged range instead.
+	args = append(args, "--format="+structuredLogFormat(), "--numstat")
+
+	out, err := g.run(args...)
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+	return parseGitLogOutput(out, logRecordSep, logFieldSep), nil
+}
+
+// CommitsBroughtInByMerge lists the commits a merge introduced, i.e. those
+// reachable from the merge's second parent but not its first.
+func (g *GitCollector) CommitsBroughtInByMerge(mergeSHA string, limit int) ([]core.Commit, error) {
+	parents, err := g.run("rev-list", "--parents", "-n1", mergeSHA)
+	if err != nil {
+		return nil, err
+	}
+	fields := strings.Fields(parents)
+	if len(fields) < 3 {
+		return nil, fmt.Errorf("%s is not a merge commit", mergeSHA)
+	}
+	first, second := fields[1], fields[2]
+
+	args := []string{"log", fmt.Sprintf("%s..%s", first, second)}
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-n%d", limit))
+	}
+	args = append(args, "--format="+structuredLogFormat(), "--numstat")
+
+	out, err := g.run(args...)
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+	return parseGitLogOutput(out, logRecordSep, logFieldSep), nil
+}
+
 // parseGitLogOutput parses our structured git log output.
 func parseGitLogOutput(out, recordSep, fieldSep string) []core.Commit {
 	var commits []core.Commit
