@@ -676,6 +676,7 @@ func (d *DB) ListReports(reportType string, limit int) ([]core.Report, error) {
 		}
 		if warn.Valid {
 			r.WarningsJSON = warn.String
+			r.DecodeWarnings()
 		}
 		reports = append(reports, r)
 	}
@@ -834,6 +835,7 @@ func (d *DB) FindReportByTarget(projectID, reportType, headRef, taskID string) (
 	if err != nil {
 		return nil, err
 	}
+	r.DecodeWarnings()
 	return &r, nil
 }
 

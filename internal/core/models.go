@@ -1,6 +1,8 @@
 package core
 
 import (
+	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -265,6 +267,48 @@ type Report struct {
 	// WebURL is the path the report is served at, computed by the API layer
 	// from FilePath. It is not persisted.
 	WebURL string `json:"web_url,omitempty"`
+	// Warnings is WarningsJSON decoded for callers. The raw column stays the
+	// source of truth; this is filled in on read.
+	Warnings []string `json:"warnings,omitempty"`
+	// WarningsRecorded distinguishes "checked, nothing wrong" from "never
+	// checked". Reports generated before warnings were persisted have no
+	// record, and must not be presented as verified.
+	WarningsRecorded bool `json:"warnings_recorded"`
+}
+
+// SetWarnings stores warnings on the report, keeping the raw column and the
+// decoded slice in sync.
+//
+// An empty set is still recorded, as "[]" rather than "", so that a report
+// checked and found clean is distinguishable from one that was never checked.
+// Without that distinction an old report would look verified purely because
+// nothing was ever written for it.
+func (r *Report) SetWarnings(warnings []string) {
+	r.Warnings = warnings
+	r.WarningsRecorded = true
+	if len(warnings) == 0 {
+		r.WarningsJSON = "[]"
+		return
+	}
+	if b, err := json.Marshal(warnings); err == nil {
+		r.WarningsJSON = string(b)
+	}
+}
+
+// DecodeWarnings fills Warnings from WarningsJSON. A malformed or empty value
+// yields no warnings rather than an error, so a report stays listable even if
+// its warnings cannot be read.
+func (r *Report) DecodeWarnings() {
+	r.Warnings = nil
+	r.WarningsRecorded = false
+	if strings.TrimSpace(r.WarningsJSON) == "" {
+		return
+	}
+	var out []string
+	if err := json.Unmarshal([]byte(r.WarningsJSON), &out); err == nil {
+		r.Warnings = out
+		r.WarningsRecorded = true
+	}
 }
 
 // ReportSnapshot represents an immutable checkpoint of an evolving report.

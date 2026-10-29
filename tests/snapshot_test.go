@@ -2,7 +2,9 @@ package tests
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/donieltripura/devtrail/internal/config"
@@ -283,4 +285,126 @@ func TestDeleteReportLeavesOtherRowsAndSnapshotsIntact(t *testing.T) {
 	if len(snaps) != 1 {
 		t.Errorf("the keeper's archive was damaged: %d snapshot(s)", len(snaps))
 	}
+}
+
+// The engine computed evidence warnings, rendered them into the HTML and then
+// discarded them, so the API could never tell a caller that a report flagged
+// stale or missing evidence.
+func TestWarningsArePersistedAndReadBack(t *testing.T) {
+	engine, _, cleanup := newEngine(t)
+	defer cleanup()
+
+	// A fresh repository has no evidence, which is exactly what warns.
+	report, _, err := engine.GenerateActivityReport("main", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Warnings) == 0 {
+		t.Fatal("expected a warning about missing evidence on the generated report")
+	}
+	if report.WarningsJSON == "" {
+		t.Error("warnings were not encoded for storage")
+	}
+
+	// They must survive a round trip through the database.
+	rows, err := engine.Store.ListReports(core.ReportTypeActivity, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) == 0 {
+		t.Fatal("no report rows")
+	}
+	if len(rows[0].Warnings) != len(report.Warnings) {
+		t.Fatalf("read back %d warning(s), generated %d",
+			len(rows[0].Warnings), len(report.Warnings))
+	}
+	if rows[0].Warnings[0] != report.Warnings[0] {
+		t.Errorf("warning text changed in storage: %q vs %q",
+			rows[0].Warnings[0], report.Warnings[0])
+	}
+}
+
+// Recording evidence against HEAD clears the warning on the next run, so the
+// stored value tracks reality rather than going stale.
+func TestWarningsClearOnceEvidenceMatchesHead(t *testing.T) {
+	engine, repo, cleanup := newEngine(t)
+	defer cleanup()
+
+	head, err := collectorHeadSHA(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := engine.Store.CreateEvidence(&core.Evidence{
+		ID: "ev-1", ProjectID: "default", EvidenceType: core.EvidenceTypeTest,
+		Result: core.EvidenceResultPassed, Command: "go test ./...",
+		CommitSHA: head, Branch: "main",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	report, _, err := engine.GenerateActivityReport("main", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Warnings) != 0 {
+		t.Errorf("expected no warnings once evidence matches HEAD, got %v", report.Warnings)
+	}
+	// A clean check is still recorded, so it is distinguishable from a report
+	// that was never checked at all.
+	if report.WarningsJSON != "[]" {
+		t.Errorf("a clean check should record [], got %q", report.WarningsJSON)
+	}
+	if !report.WarningsRecorded {
+		t.Error("a clean check should still count as recorded")
+	}
+}
+
+func TestSetWarningsAndDecodeRoundTrip(t *testing.T) {
+	r := &core.Report{}
+	r.SetWarnings([]string{`evidence is "stale"`, "second\nline"})
+
+	decoded := &core.Report{WarningsJSON: r.WarningsJSON}
+	decoded.DecodeWarnings()
+
+	if len(decoded.Warnings) != 2 {
+		t.Fatalf("round trip lost warnings: %v", decoded.Warnings)
+	}
+	if decoded.Warnings[0] != `evidence is "stale"` {
+		t.Errorf("quotes were mangled: %q", decoded.Warnings[0])
+	}
+
+	// Malformed storage must not break listing.
+	bad := &core.Report{WarningsJSON: "{not json"}
+	bad.DecodeWarnings()
+	if bad.Warnings != nil {
+		t.Errorf("malformed warnings_json should decode to nothing, got %v", bad.Warnings)
+	}
+
+	// An empty set is recorded, not blank.
+	empty := &core.Report{}
+	empty.SetWarnings(nil)
+	if empty.WarningsJSON != "[]" {
+		t.Errorf("an empty warning set should record [], got %q", empty.WarningsJSON)
+	}
+	if !empty.WarningsRecorded {
+		t.Error("an empty but performed check must count as recorded")
+	}
+
+	// A report that was never checked must not look verified.
+	never := &core.Report{}
+	never.DecodeWarnings()
+	if never.WarningsRecorded {
+		t.Error("a report with no stored warnings must not report as checked")
+	}
+}
+
+// collectorHeadSHA returns the HEAD commit of a fixture repository.
+func collectorHeadSHA(repoDir string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
 }

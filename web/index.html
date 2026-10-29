@@ -1454,7 +1454,7 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
           <div class="card-body card-body--flush">
             <div class="table-wrap">
               <table class="data-table">
-                <thead><tr><th>Title</th><th>Type</th><th>Ref</th><th>Generated</th><th>Open</th></tr></thead>
+                <thead><tr><th>Title</th><th>Type</th><th>Ref</th><th>Evidence</th><th>Generated</th><th>Open</th></tr></thead>
                 <tbody id="reports-body"></tbody>
               </table>
             </div>
@@ -2717,7 +2717,7 @@ loaders.evidence = async function () {
 loaders.reports = async function () {
   clearAlert('reports-alert');
   const body = $('#reports-body');
-  body.innerHTML = skeletonRows(5);
+  body.innerHTML = skeletonRows(6);
   try {
     const rows = (await api.get('/api/reports')) || [];
     body.innerHTML = rows.length ? rows.map((r) => `
@@ -2725,12 +2725,17 @@ loaders.reports = async function () {
         <td><strong>${h(r.title)}</strong></td>
         <td><span class="badge badge--info">${h(r.report_type)}</span></td>
         <td class="num">${h(r.head_ref || r.base_ref || '—')}</td>
+        <td>${(r.warnings && r.warnings.length)
+          ? `<span class="badge badge--warn" title="${h(r.warnings.join('\n'))}">${r.warnings.length} warning${r.warnings.length === 1 ? '' : 's'}</span>`
+          : r.warnings_recorded
+            ? '<span class="badge badge--ok">Verified</span>'
+            : '<span class="t-dim" title="This report predates evidence checks, or does not perform them.">Not checked</span>'}</td>
         <td class="num">${h(formatDateTime(r))}</td>
         <td>${r.web_url
           ? `<a class="btn btn--sm" href="${h(r.web_url)}" target="_blank" rel="noopener">${icon('external', 13)} Open</a>`
           : '<span class="t-dim">File missing</span>'}</td>
       </tr>`).join('')
-      : emptyRow(5, 'No reports generated', 'Generate one above, or run:', 'devtrail report activity');
+      : emptyRow(6, 'No reports generated', 'Generate one above, or run:', 'devtrail report activity');
   } catch (err) {
     showAlert('reports-alert', err);
     body.innerHTML = '';

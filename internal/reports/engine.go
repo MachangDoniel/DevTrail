@@ -179,6 +179,10 @@ func (e *ReportEngine) GenerateActivityReport(branch string, taskID string, snap
 		ProfileVersion: 1,
 		CreatedAt:      time.Now().UTC(),
 	}
+	// The warnings were rendered into the HTML and then thrown away, so a
+	// caller listing reports could never tell that one flagged stale or
+	// missing evidence. Persist them alongside the record.
+	reportRecord.SetWarnings(warnings)
 
 	if e.Store != nil {
 		existing, err := e.Store.FindReportByTarget("default", core.ReportTypeActivity, branch, taskID)
