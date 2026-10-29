@@ -1181,6 +1181,8 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
             <select class="select" id="f-type"><option value="">All types</option></select>
             <label class="sr-only" for="f-who">Filter by author or agent</label>
             <select class="select" id="f-who"><option value="">Everyone</option></select>
+            <label class="sr-only" for="f-task">Filter by task</label>
+            <select class="select" id="f-task"><option value="">Any task</option></select>
             <button type="button" class="btn btn--sm" data-action="clear-filters">Clear</button>
             <span class="filter-count" id="filter-count"></span>
           </div>
@@ -1615,6 +1617,12 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
         <textarea class="textarea" id="drawer-note-input" placeholder="Add a development note…"></textarea>
         <button type="button" class="btn btn--sm stack-sm" data-action="add-note">Add note</button>
       </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-label">Commits delivered</div>
+      <div id="drawer-commits"></div>
+      <button type="button" class="btn btn--sm stack-sm" data-action="link-commits">Scan history for links</button>
     </div>
 
     <div class="drawer-section">
@@ -2090,6 +2098,9 @@ function renderChange(ch) {
   const scope = ch.scope ? `<span class="badge badge--info">${h(ch.scope)}</span>` : '';
   const breaking = ch.breaking ? '<span class="badge badge--danger">Breaking</span>' : '';
   const merge = ch.is_merge ? '<span class="badge badge--neutral">Merge</span>' : '';
+  const task = ch.task
+    ? `<span class="badge badge--ok" title="${h(ch.task.title)}">${h(ch.task.id)}</span>`
+    : '';
 
   return `<li class="change-item">
     <button type="button" class="change" aria-expanded="false" data-sha="${h(ch.sha)}">
@@ -2098,7 +2109,7 @@ function renderChange(ch) {
         <div class="change-headline">${h(ch.headline || ch.subject)}</div>
         <div class="change-meta">
           <span class="badge ${typeClass(ch.type)}">${h(TYPE_LABEL[ch.type] || ch.type)}</span>
-          ${scope}${breaking}${merge}${agents}
+          ${scope}${breaking}${merge}${task}${agents}
           <span>${h(formatRelative(ch))}</span>
         </div>
       </div>
@@ -2178,6 +2189,7 @@ function currentFilters() {
     path: $('#f-path').value.trim().toLowerCase(),
     type: $('#f-type').value,
     who: $('#f-who').value,
+    task: $('#f-task').value,
   };
 }
 
@@ -2189,6 +2201,13 @@ function changeMatches(ch, f) {
   }
   if (f.path) {
     if (!(ch.files || []).some((file) => file.toLowerCase().includes(f.path))) return false;
+  }
+  if (f.task) {
+    if (f.task === '__none__') {
+      if (ch.task) return false;
+    } else if (!ch.task || ch.task.id !== f.task) {
+      return false;
+    }
   }
   if (f.who) {
     const actor = (ch.agents && ch.agents.length) ? ch.agents[0] : ch.author;
@@ -2210,6 +2229,21 @@ function syncFilterOptions(d) {
       if (!who.has(key)) who.set(key, actor);
     }
   }
+
+  const tasks = new Map();
+  let unlinked = 0;
+  for (const b of d.buckets) {
+    for (const ch of b.changes) {
+      if (ch.task) tasks.set(ch.task.id, ch.task);
+      else unlinked++;
+    }
+  }
+  const taskSel = $('#f-task');
+  const keepTask = taskSel.value;
+  taskSel.innerHTML = '<option value="">Any task</option>' +
+    [...tasks.values()].map((t) => `<option value="${h(t.id)}">${h(t.id)} — ${h(t.title)}</option>`).join('') +
+    (unlinked ? `<option value="__none__">No task (${unlinked})</option>` : '');
+  taskSel.value = keepTask && (tasks.has(keepTask) || keepTask === '__none__') ? keepTask : '';
 
   const typeSel = $('#f-type');
   const keepType = typeSel.value;
@@ -2913,6 +2947,11 @@ function openDrawer(taskId) {
   $('#drawer-note-input').value = '';
   $('#drawer-branch-input').value = '';
 
+  const commits = Array.isArray(task.commits) ? task.commits : [];
+  $('#drawer-commits').innerHTML = commits.length
+    ? `<div class="file-list">${commits.map((sha) => `<div class="mono">${h(shortSha(sha))}</div>`).join('')}</div>`
+    : `<span class="t-dim">No commits linked yet. Reference ${h(task.id)} in a commit message, then scan.</span>`;
+
   $('#drawer-branches').innerHTML = task.linkedBranches.length
     ? task.linkedBranches.map((b) => `<span class="badge badge--info">${h(b)}</span>`).join('')
     : '<span class="t-dim">No linked branches</span>';
@@ -3201,7 +3240,19 @@ const actions = {
     $('#f-path').value = '';
     $('#f-type').value = '';
     $('#f-who').value = '';
+    $('#f-task').value = '';
     renderDigest();
+  },
+  'link-commits': async () => {
+    try {
+      const res = await api.post('/api/tasks/link', {});
+      toast(res.linked
+        ? `Linked ${res.linked} commit(s) across ${Object.keys(res.per_task).length} task(s)`
+        : 'No new links found — reference a task ID in a commit message', res.linked ? 'ok' : 'error');
+      await loadTasks();
+      renderBoard();
+      if (state.selectedTaskId) openDrawer(state.selectedTaskId);
+    } catch (err) { toast(err.message, 'error'); }
   },
   'export-digest': async () => {
     const group = $('#digest-group').value;
@@ -3312,7 +3363,7 @@ $('#config-filter').addEventListener('input', filterConfig);
 $('#event-filter').addEventListener('change', () => loaders.events());
 $('#digest-group').addEventListener('change', () => loaders.changes());
 ['#f-text', '#f-path'].forEach((sel) => $(sel).addEventListener('input', renderDigest));
-['#f-type', '#f-who'].forEach((sel) => $(sel).addEventListener('change', renderDigest));
+['#f-type', '#f-who', '#f-task'].forEach((sel) => $(sel).addEventListener('change', renderDigest));
 $('#digest-range').addEventListener('change', () => loaders.changes());
 $('#btn-sync').addEventListener('click', () => refreshAll());
 

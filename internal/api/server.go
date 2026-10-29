@@ -36,6 +36,7 @@ type Server struct {
 	MetricsSvc   *services.MetricsService
 	DigestSvc    *services.DigestService
 	Scheduler    *services.SchedulerService
+	TaskLinkSvc  *services.TaskLinkService
 	Assets       fs.FS
 }
 
@@ -57,6 +58,7 @@ func NewServer(repoDir string, cfg *config.Config, store core.StorageInterface, 
 		MetricsSvc:   services.NewMetricsService(store, gitCol),
 		DigestSvc:    digestSvc,
 		Scheduler:    services.NewSchedulerService(store, cfg, engine, digestSvc),
+		TaskLinkSvc:  services.NewTaskLinkService(store, gitCol, cfg.Project.DefaultBranch),
 		Assets:       assets,
 	}
 }
@@ -75,6 +77,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/tasks/attach", s.handleTaskAttach)
 	mux.HandleFunc("/api/tasks/note", s.handleTaskNote)
 	mux.HandleFunc("/api/tasks/handoff", s.handleTaskHandoff)
+	mux.HandleFunc("/api/tasks/link", s.handleTaskLink)
 	mux.HandleFunc("/api/timeline", s.handleTimeline)
 	mux.HandleFunc("/api/checkpoints", s.handleCheckpoints)
 	mux.HandleFunc("/api/evidence", s.handleEvidence)
@@ -330,6 +333,27 @@ func (s *Server) handleSchedules(w http.ResponseWriter, r *http.Request) {
 			"prefix":      s.Config.SprintPrefix(),
 		},
 	})
+}
+
+// handleTaskLink scans history and links commits to the tasks they delivered.
+func (s *Server) handleTaskLink(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		clientError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	var req struct {
+		Limit int `json:"limit"`
+	}
+	if err := decodeBody(r, &req); err != nil {
+		clientError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+	res, err := s.TaskLinkSvc.Sync(req.Limit)
+	if err != nil {
+		serverError(w, "link commits to tasks", err)
+		return
+	}
+	jsonResponse(w, http.StatusOK, res)
 }
 
 func (s *Server) handleBranches(w http.ResponseWriter, r *http.Request) {
@@ -590,10 +614,19 @@ func (s *Server) handleGitCommit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGitGraph(w http.ResponseWriter, r *http.Request) {
-	nodes, err := s.Git.GetCommitGraph(60)
+	nodes, err := s.Git.GetCommitGraph(queryInt(r, "limit", 60, 500))
 	if err != nil {
 		serverError(w, "read commit graph", err)
 		return
+	}
+	// CommitGraphNode.TaskID has existed since the first release and was never
+	// populated; fill it from the stored commit links.
+	if index, err := services.BuildCommitIndex(s.Store); err == nil {
+		for i := range nodes {
+			if ref, ok := index[nodes[i].SHA]; ok {
+				nodes[i].TaskID = ref.ID
+			}
+		}
 	}
 	jsonResponse(w, http.StatusOK, nodes)
 }

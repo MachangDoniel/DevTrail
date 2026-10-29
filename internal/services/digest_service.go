@@ -79,8 +79,10 @@ type Change struct {
 	Agents     []Actor   `json:"agents,omitempty"`
 	IsMerge    bool      `json:"is_merge"`
 	MergedFrom string    `json:"merged_from,omitempty"`
-	Stats      Stats     `json:"stats"`
-	Files      []string  `json:"files,omitempty"`
+	// Task is set when this commit is linked to a tracked task.
+	Task  *TaskRef `json:"task,omitempty"`
+	Stats Stats    `json:"stats"`
+	Files []string `json:"files,omitempty"`
 }
 
 // AttributedTo returns the key this change is credited to when grouping by
@@ -307,9 +309,20 @@ func (s *DigestService) Build(opts DigestOptions) (*Digest, error) {
 		return nil, err
 	}
 
+	// Attach the task each commit delivered, where one is linked.
+	index, err := BuildCommitIndex(s.Store)
+	if err != nil {
+		index = CommitIndex{}
+	}
+
 	changes := make([]Change, 0, len(commits))
 	for _, c := range commits {
-		changes = append(changes, Classify(c))
+		ch := Classify(c)
+		if ref, ok := index[ch.SHA]; ok {
+			r := ref
+			ch.Task = &r
+		}
+		changes = append(changes, ch)
 	}
 
 	d := &Digest{

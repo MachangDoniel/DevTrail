@@ -71,6 +71,7 @@ func init() {
 	taskCmd.AddCommand(taskShowCmd)
 	taskCmd.AddCommand(taskAttachCmd)
 	taskCmd.AddCommand(taskNoteCmd)
+	taskCmd.AddCommand(taskLinkCmd)
 
 	// Evidence subcommands
 	evidenceCmd.AddCommand(evidenceAttachCmd)
@@ -94,6 +95,7 @@ func init() {
 	taskCreateCmd.Flags().String("objective", "", "Objective or summary")
 	taskCreateCmd.Flags().Bool("attach", true, "Auto-attach current branch")
 	taskCreateCmd.Flags().String("provider", "claude", "AI provider: claude, chatgpt, gemini, copilot, local, human")
+	taskLinkCmd.Flags().Int("limit", 500, "How many commits of history to scan")
 	taskAttachCmd.Flags().String("branch", "", "Branch to attach (default: current)")
 
 	// Checkpoint flags
@@ -485,6 +487,44 @@ var taskCreateCmd = &cobra.Command{
 		fmt.Printf("✓ Created task %s: %s\n", task.ID, task.Title)
 		if len(task.Branches) > 0 {
 			fmt.Printf("  • Linked to branch: %s\n", strings.Join(task.Branches, ", "))
+		}
+		return nil
+	},
+}
+
+var taskLinkCmd = &cobra.Command{
+	Use:   "link",
+	Short: "Scan history and link commits to the tasks they delivered",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoRoot, err := getRepoRoot()
+		if err != nil {
+			return err
+		}
+		cfg, err := config.LoadConfig(repoRoot)
+		if err != nil {
+			return err
+		}
+		db, err := getDB(repoRoot, cfg)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		limit, _ := cmd.Flags().GetInt("limit")
+		svc := services.NewTaskLinkService(db, collector.NewGitCollector(repoRoot), cfg.Project.DefaultBranch)
+		res, err := svc.Sync(limit)
+		if err != nil {
+			return fmt.Errorf("failed to link commits: %w", err)
+		}
+
+		fmt.Printf("Scanned %d commit(s), linked %d (%d by reference, %d by branch)\n",
+			res.CommitsScanned, res.Linked, res.ByReference, res.ByBranch)
+		for taskID, n := range res.PerTask {
+			fmt.Printf("  • %s: %d commit(s)\n", taskID, n)
+		}
+		if res.Linked == 0 {
+			fmt.Println("\nNo links made. Reference a task in a commit message, e.g.:")
+			fmt.Println("  git commit -m \"feat(api): add endpoint (DT-1234)\"")
 		}
 		return nil
 	},
