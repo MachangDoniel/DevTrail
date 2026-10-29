@@ -971,6 +971,11 @@ func runServer(port int, autoOpen bool) error {
 	ctx, stopScheduler := context.WithCancel(context.Background())
 	defer stopScheduler()
 	srv.Scheduler.Start(ctx, time.Minute)
+	// Triggers react to repository state, so they poll more often than the
+	// clock-driven schedules do.
+	triggerStop := make(chan struct{})
+	defer close(triggerStop)
+	srv.TriggerSvc.Start(triggerStop, 30*time.Second)
 
 	httpSrv := &http.Server{
 		Addr:              addr,

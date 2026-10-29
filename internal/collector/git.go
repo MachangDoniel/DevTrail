@@ -316,6 +316,30 @@ func (g *GitCollector) LogSince(ref string, since time.Time, limit int) ([]core.
 	return parseGitLogOutput(out, logRecordSep, logFieldSep), nil
 }
 
+// RootCommit returns the repository's first commit, used to bound a release
+// that has no preceding tag.
+func (g *GitCollector) RootCommit() (string, error) {
+	out, err := g.run("rev-list", "--max-parents=0", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	lines := strings.Fields(strings.TrimSpace(out))
+	if len(lines) == 0 {
+		return "", fmt.Errorf("no root commit")
+	}
+	return lines[len(lines)-1], nil
+}
+
+// PreviousTag returns the tag immediately preceding the given one, or "" when
+// it is the first. Used to bound a versioned release report.
+func (g *GitCollector) PreviousTag(tag string) (string, error) {
+	out, err := g.run("describe", "--tags", "--abbrev=0", tag+"^")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // CommitsBroughtInByMerge lists the commits a merge introduced, i.e. those
 // reachable from the merge's second parent but not its first.
 func (g *GitCollector) CommitsBroughtInByMerge(mergeSHA string, limit int) ([]core.Commit, error) {

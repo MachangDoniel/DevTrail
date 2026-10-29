@@ -37,6 +37,7 @@ type Server struct {
 	DigestSvc    *services.DigestService
 	Scheduler    *services.SchedulerService
 	TaskLinkSvc  *services.TaskLinkService
+	TriggerSvc   *services.TriggerService
 	Assets       fs.FS
 }
 
@@ -59,6 +60,7 @@ func NewServer(repoDir string, cfg *config.Config, store core.StorageInterface, 
 		DigestSvc:    digestSvc,
 		Scheduler:    services.NewSchedulerService(store, cfg, engine, digestSvc),
 		TaskLinkSvc:  services.NewTaskLinkService(store, gitCol, cfg.Project.DefaultBranch),
+		TriggerSvc:   services.NewTriggerService(store, gitCol, cfg, engine),
 		Assets:       assets,
 	}
 }
@@ -89,6 +91,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/digest", s.handleDigest)
 	mux.HandleFunc("/api/digest/report", s.handleDigestReport)
 	mux.HandleFunc("/api/schedules", s.handleSchedules)
+	mux.HandleFunc("/api/triggers", s.handleTriggers)
 
 	// Serve generated HTML reports statically
 	reportsDir := http.Dir(s.RepoDir + "/.devtrail/reports")
@@ -354,6 +357,42 @@ func (s *Server) handleTaskLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonResponse(w, http.StatusOK, res)
+}
+
+// handleTriggers reports what the trigger evaluator is watching, what each
+// would act on right now, and when it last fired.
+func (s *Server) handleTriggers(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.Store.ListTriggers()
+	if err != nil {
+		serverError(w, "list triggers", err)
+		return
+	}
+
+	pending := map[string]int{}
+	for _, tc := range s.Config.Reports.Triggers {
+		if !tc.Enabled {
+			continue
+		}
+		cands, err := s.TriggerSvc.Evaluate(tc)
+		if err != nil {
+			continue
+		}
+		n := 0
+		for _, c := range cands {
+			if seen, err := s.Store.HasEventWithKey(c.Key); err == nil && !seen {
+				n++
+			}
+		}
+		pending[tc.Name] = n
+	}
+
+	if rows == nil {
+		rows = []core.Trigger{}
+	}
+	jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"triggers": rows,
+		"pending":  pending,
+	})
 }
 
 func (s *Server) handleBranches(w http.ResponseWriter, r *http.Request) {

@@ -1539,6 +1539,23 @@ code, .mono { font-family: var(--font-mono); font-size: 0.95em; }
 
           <div class="card">
             <div class="card-header">
+              <div>
+                <div class="card-title">Event triggers</div>
+                <div class="card-sub">Reports generated when something happens in the repository</div>
+              </div>
+            </div>
+            <div class="card-body card-body--flush">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Trigger</th><th>Watches for</th><th>Produces</th><th>Waiting</th><th>Last fired</th><th>Status</th></tr></thead>
+                  <tbody id="triggers-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
               <div class="card-title mono">config.yaml</div>
               <div class="card-sub" id="config-lines"></div>
             </div>
@@ -2838,6 +2855,7 @@ loaders.config = async function () {
     $('#config-filter').value = '';
     renderEditor(configLines());
     loadSchedules();
+    loadTriggers();
   } catch (err) {
     showAlert('config-alert', err);
     $('#editor-code').textContent = '';
@@ -2856,6 +2874,43 @@ function scheduleWhen(sc) {
   const day = sc.day_of_week ? ` on ${h(sc.day_of_week)}` : '';
   const at = sc.at_time ? ` at ${h(sc.at_time)}` : '';
   return `${h(freq)}${day}${at}`;
+}
+
+/** Explain a stored event pattern in words. */
+function triggerWatches(pattern) {
+  const [kind, target] = String(pattern || '').split(':');
+  if (kind === 'merge') return `A merge into ${target}`;
+  if (kind === 'tag') return `A tag matching ${target}`;
+  if (kind === 'commit') return target === '*' ? 'Any new commit' : `A commit on ${target}`;
+  return pattern || '—';
+}
+
+async function loadTriggers() {
+  const body = $('#triggers-body');
+  body.innerHTML = skeletonRows(6, 2);
+  try {
+    const data = await api.get('/api/triggers');
+    const rows = data.triggers || [];
+    const pending = data.pending || {};
+
+    body.innerHTML = rows.length ? rows.map((t) => {
+      const waiting = pending[t.name];
+      return `<tr>
+        <td><strong>${h(t.name)}</strong></td>
+        <td>${h(triggerWatches(t.event_pattern))}</td>
+        <td><span class="badge badge--info">${h(t.report_type)}</span>${
+          t.debounce_seconds ? ` <span class="badge badge--neutral">${t.debounce_seconds}s debounce</span>` : ''}</td>
+        <td class="num">${waiting ? `<span class="badge badge--warn">${waiting}</span>` : '<span class="t-dim">nothing</span>'}</td>
+        <td class="num">${t.last_triggered_at
+          ? h(formatRelative({ created_at: t.last_triggered_at }))
+          : '<span class="t-dim">never</span>'}</td>
+        <td><span class="badge badge--${t.is_enabled ? 'ok' : 'neutral'}">${t.is_enabled ? 'Enabled' : 'Disabled'}</span></td>
+      </tr>`;
+    }).join('')
+      : emptyRow(6, 'No triggers configured', 'Add entries under reports.triggers in config.yaml.');
+  } catch (err) {
+    body.innerHTML = emptyRow(6, 'Could not load triggers', err.message);
+  }
 }
 
 async function loadSchedules() {

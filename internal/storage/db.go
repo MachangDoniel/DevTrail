@@ -949,3 +949,79 @@ func (d *DB) DeleteReport(id string) error {
 	_, err := d.conn.Exec(`DELETE FROM reports WHERE id = ?`, id)
 	return err
 }
+
+// UpsertTrigger stores a trigger definition, keyed by its unique name.
+// Fire bookkeeping is preserved so reloading config cannot replay a trigger
+// that has already run.
+func (d *DB) UpsertTrigger(t *core.Trigger) error {
+	if t.ID == "" {
+		t.ID = uuid.NewString()
+	}
+	_, err := d.conn.Exec(`
+		INSERT INTO triggers (
+			id, project_id, name, event_pattern, report_type,
+			debounce_seconds, is_enabled, last_triggered_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(name) DO UPDATE SET
+			event_pattern = excluded.event_pattern,
+			report_type = excluded.report_type,
+			debounce_seconds = excluded.debounce_seconds,
+			is_enabled = excluded.is_enabled`,
+		t.ID, t.ProjectID, t.Name, t.EventPattern, t.ReportType,
+		t.DebounceSeconds, t.IsEnabled, t.LastTriggeredAt,
+	)
+	return err
+}
+
+// ListTriggers returns every stored trigger, enabled first then by name.
+func (d *DB) ListTriggers() ([]core.Trigger, error) {
+	rows, err := d.conn.Query(`
+		SELECT id, project_id, name, event_pattern, report_type,
+		       debounce_seconds, is_enabled, last_triggered_at, created_at
+		FROM triggers
+		ORDER BY is_enabled DESC, name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []core.Trigger
+	for rows.Next() {
+		var t core.Trigger
+		var last sql.NullTime
+		if err := rows.Scan(&t.ID, &t.ProjectID, &t.Name, &t.EventPattern,
+			&t.ReportType, &t.DebounceSeconds, &t.IsEnabled, &last, &t.CreatedAt); err != nil {
+			return nil, err
+		}
+		if last.Valid {
+			v := last.Time
+			t.LastTriggeredAt = &v
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// MarkTriggerFired records that a trigger ran.
+func (d *DB) MarkTriggerFired(name string, at time.Time) error {
+	_, err := d.conn.Exec(
+		`UPDATE triggers SET last_triggered_at = ? WHERE name = ?`, at, name)
+	return err
+}
+
+// HasEventWithKey reports whether an event with this idempotency key exists.
+//
+// The trigger evaluator uses it to answer "have I already handled this commit
+// or tag", so a polling loop cannot regenerate the same report on every tick.
+func (d *DB) HasEventWithKey(key string) (bool, error) {
+	if key == "" {
+		return false, nil
+	}
+	var n int
+	err := d.conn.QueryRow(
+		`SELECT COUNT(*) FROM events WHERE idempotency_key = ?`, key).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}

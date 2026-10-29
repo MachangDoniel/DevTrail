@@ -39,6 +39,10 @@ type StorageInterface interface {
 	UpsertSchedule(s *Schedule) error
 	ListSchedules() ([]Schedule, error)
 	MarkScheduleRun(name string, ranAt, nextRun time.Time) error
+	UpsertTrigger(t *Trigger) error
+	ListTriggers() ([]Trigger, error)
+	MarkTriggerFired(name string, at time.Time) error
+	HasEventWithKey(key string) (bool, error)
 	Close() error
 }
 
