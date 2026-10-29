@@ -80,8 +80,19 @@
    ========================================================================= */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html {
   height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+/* Only body is the flex container. Making <html> one too would turn <body>
+   into a flex item, and a flex item is `flex: 0 1 auto` — it shrinks but never
+   grows, so the whole app would size to its content's max-content width and
+   leave a gap on wider windows. */
+body {
+  height: 100dvh;
+  width: 100%;
   background: var(--bg-base);
   color: var(--text);
   font-family: var(--font-sans);
